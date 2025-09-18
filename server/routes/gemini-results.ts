@@ -68,7 +68,7 @@ RULES
       });
     }
 
-    // Retry with simple exponential backoff on 429/5xx
+    // Retry with exponential backoff on 429/5xx
     const modelUrls = [
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent",
@@ -78,11 +78,19 @@ RULES
 
     if (!resp.ok) {
       const firstError = { status: resp.status, body: await resp.text() };
+      
+      // Special handling for 429 (rate limit) errors
+      if (resp.status === 429) {
+        console.log('⚠️ Rate limit hit, waiting before retry...');
+        // Wait longer for rate limit errors
+        await new Promise((r) => setTimeout(r, 1000)); // Reduced to 1 second initial delay
+      }
+      
       // Try fallback model with retries
       let attempt = 0;
       const maxAttempts = 3;
       while (attempt < maxAttempts) {
-        const delayMs = 300 * Math.pow(2, attempt);
+        const delayMs = resp.status === 429 ? 1000 * Math.pow(2, attempt) : 300 * Math.pow(2, attempt);
         await new Promise((r) => setTimeout(r, delayMs));
         resp = await callGemini(modelUrls[Math.min(1, attempt)]);
         if (resp.ok) break;
@@ -90,7 +98,13 @@ RULES
       }
       if (!resp.ok) {
         const text = await resp.text();
-        res.status(resp.status).json({ error: "Gemini request failed", firstError, finalError: text });
+        console.error('❌ Gemini request failed after retries:', { status: resp.status, text });
+        res.status(resp.status).json({ 
+          error: "Gemini request failed", 
+          details: resp.status === 429 ? "Rate limit exceeded. Please try again in a few minutes." : "API request failed",
+          firstError, 
+          finalError: text 
+        });
         return;
       }
     }

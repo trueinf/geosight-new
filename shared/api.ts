@@ -19,6 +19,7 @@ export interface ClaudeResultsRequest {
 
 export interface ClaudeResultsResponse {
   text: string; // Strictly formatted numbered list per prompt
+  rankingAnalysis?: RankingAnalysisResponse[]; // Ranking analysis for each item
 }
 
 // Gemini Results API
@@ -29,6 +30,7 @@ export interface GeminiResultsRequest {
 
 export interface GeminiResultsResponse {
   text: string;
+  rankingAnalysis?: RankingAnalysisResponse[]; // Ranking analysis for each item
 }
 
 // OpenAI Results API
@@ -39,6 +41,7 @@ export interface OpenAIResultsRequest {
 
 export interface OpenAIResultsResponse {
   text: string;
+  rankingAnalysis?: RankingAnalysisResponse[]; // Ranking analysis for each item
 }
 
 // Perplexity Results API
@@ -49,4 +52,26 @@ export interface PerplexityResultsRequest {
 
 export interface PerplexityResultsResponse {
   text: string;
+  rankingAnalysis?: RankingAnalysisResponse[]; // Ranking analysis for each item
+}
+
+// Ranking Analysis API
+export interface RankingAnalysisRequest {
+  provider: string;
+  target: string;
+  user_query: string;
+  monitoring_keyword: string;
+  results_text: string;
+}
+
+export interface RankingAnalysisResponse {
+  provider: string;
+  target: string;
+  rank: number | null;
+  matched_keywords: string[];
+  contextual_signals: string[];
+  competitor_presence: string[];
+  sentiment: "positive" | "neutral" | "negative";
+  citation_domains: string[];
+  llm_reasoning: string;
 }

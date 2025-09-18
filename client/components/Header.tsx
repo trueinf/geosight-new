@@ -5,6 +5,7 @@ import { Link, useLocation } from "react-router-dom";
 export default function Header() {
   const location = useLocation();
   const isResultsPage = location.pathname === "/results";
+  const isReportPage = location.pathname === "/report";
   const isHomePage = location.pathname === "/";
 
   return (
@@ -45,10 +46,17 @@ export default function Header() {
               <span className="text-base font-semibold">Results</span>
             </Link>
 
-            <div className="flex items-center gap-2 text-geo-slate-600">
+            <Link
+              to="/report"
+              className={`flex items-center gap-2 pb-1 ${
+                isReportPage
+                  ? "text-geo-blue-500 border-b-2 border-geo-blue-500"
+                  : "text-geo-slate-600 hover:text-geo-slate-900"
+              }`}
+            >
               <HelpCircle className="w-4 h-4" />
-              <span className="text-base">Report</span>
-            </div>
+              <span className="text-base font-semibold">Report</span>
+            </Link>
           </div>
 
           {/* User actions */}

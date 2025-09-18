@@ -1,4 +1,4 @@
-import { MessageSquare, Sparkles, Search, Gem } from "lucide-react";
+import { MessageSquare, Sparkles, Search, Gem, Loader2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { type ProviderKey, type ParsedResultItem } from "@/lib/api";
 
@@ -84,8 +84,17 @@ export default function ProviderTabs({ providerItems, target }: ProviderTabsProp
             >
               <Icon className="w-5 h-5" />
               <span className="text-base">{provider.name}</span>
-              <div className={`${provider.bgColor} text-white text-xs font-bold px-2 py-1 rounded`}>
-                {ranking ? `#${ranking}` : '--'}
+              <div className={`${provider.bgColor} text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1`}>
+                {ranking ? (
+                  `#${ranking}`
+                ) : providerItems[provider.id as ProviderKey]?.length === 0 ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  '--'
+                )}
               </div>
             </button>
           );

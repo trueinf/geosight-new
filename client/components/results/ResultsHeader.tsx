@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Target, Clock, RotateCcw, List, Grid3X3 } from "lucide-react";
+import { Search, Target, Clock, RotateCcw, List, Grid3X3, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type ProviderKey, type ParsedResultItem } from "@/lib/api";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -99,7 +99,14 @@ export default function ResultsHeader({ providerItems }: { providerItems: Record
             </div>
 
             <div className="flex items-center gap-4">
-              <Button className="h-10 px-4 bg-geo-blue-500 hover:bg-geo-blue-600 text-white font-bold">
+              <Button 
+                onClick={() => navigate(`/report?${params.toString()}`)}
+                className="h-10 px-4 bg-geo-blue-500 hover:bg-geo-blue-600 text-white font-bold"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                View Report
+              </Button>
+              <Button className="h-10 px-4 bg-slate-600 hover:bg-slate-700 text-white font-bold">
                 <List className="w-4 h-4 mr-2" />
                 List View
               </Button>

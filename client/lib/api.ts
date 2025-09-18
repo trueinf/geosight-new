@@ -1,4 +1,7 @@
-import type { ClaudeResultsRequest, ClaudeResultsResponse, GeminiResultsRequest, GeminiResultsResponse, OpenAIResultsRequest, OpenAIResultsResponse, PerplexityResultsRequest, PerplexityResultsResponse } from "@shared/api";
+import type { ClaudeResultsRequest, ClaudeResultsResponse, GeminiResultsRequest, GeminiResultsResponse, OpenAIResultsRequest, OpenAIResultsResponse, PerplexityResultsRequest, PerplexityResultsResponse, RankingAnalysisRequest, RankingAnalysisResponse } from "@shared/api";
+
+// Re-export for use in components
+export type { RankingAnalysisResponse } from "@shared/api";
 
 export interface ParsedResultItem {
   rank: number;
@@ -9,10 +12,14 @@ export interface ParsedResultItem {
   website?: string; // e.g., asics.com
   category?: string; // e.g., Stability / Support / Neutral
   why?: string; // brief reason for position
+  rankingAnalysis?: RankingAnalysisResponse; // detailed ranking analysis
 }
 
-export function parseStrictListResponse(text: string): ParsedResultItem[] {
+export function parseStrictListResponse(text: string, rankingAnalysis?: RankingAnalysisResponse[]): ParsedResultItem[] {
   if (!text) return [];
+  
+  console.log('🔍 RAW TEXT FROM API:', text);
+  console.log('🔍 RANKING ANALYSIS FROM API:', rankingAnalysis);
 
 
   // Try to find numbered items in the text
@@ -91,6 +98,19 @@ export function parseStrictListResponse(text: string): ParsedResultItem[] {
     const website = siteMatch?.[1]?.toLowerCase();
     
     
+    // Find matching ranking analysis for this item by rank position
+    const matchingAnalysis = rankingAnalysis?.find(analysis => analysis.rank === rank);
+    
+    console.log(`🔍 PARSED ITEM #${rank}:`, {
+      title,
+      description,
+      rating,
+      priceRange,
+      website,
+      matchingAnalysis,
+      availableRanks: rankingAnalysis?.map(a => a.rank)
+    });
+
     items.push({
       rank,
       title,
@@ -98,14 +118,15 @@ export function parseStrictListResponse(text: string): ParsedResultItem[] {
       rating,
       priceRange,
       website,
-      why: undefined, // Will be filled later if needed
+      why: matchingAnalysis?.llm_reasoning || undefined,
+      rankingAnalysis: matchingAnalysis,
     });
   }
   
   return items;
 }
 
-export async function fetchClaudeResults(userQuery: string, monitoringKeyword: string): Promise<string> {
+export async function fetchClaudeResults(userQuery: string, monitoringKeyword: string): Promise<{ text: string; rankingAnalysis?: RankingAnalysisResponse[] }> {
   const body: ClaudeResultsRequest = {
     user_query: userQuery,
     monitoring_keyword: monitoringKeyword,
@@ -117,7 +138,7 @@ export async function fetchClaudeResults(userQuery: string, monitoringKeyword: s
   });
   if (!resp.ok) throw new Error(await resp.text());
   const data = (await resp.json()) as ClaudeResultsResponse;
-  return data.text;
+  return { text: data.text, rankingAnalysis: data.rankingAnalysis };
 }
 
 export async function fetchGeminiResults(
@@ -174,18 +195,42 @@ export async function fetchPerplexityResults(
   return data.text;
 }
 
+export async function fetchRankingAnalysis(
+  provider: string,
+  target: string,
+  userQuery: string,
+  monitoringKeyword: string,
+  resultsText: string
+): Promise<RankingAnalysisResponse> {
+  const body: RankingAnalysisRequest = {
+    provider,
+    target,
+    user_query: userQuery,
+    monitoring_keyword: monitoringKeyword,
+    results_text: resultsText,
+  };
+  const resp = await fetch("/api/ranking-analysis", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(await resp.text());
+  const data = (await resp.json()) as RankingAnalysisResponse;
+  return data;
+}
+
 export type ProviderKey = "claude" | "gemini" | "openai" | "perplexity";
 
-export async function fetchProviderResults(provider: ProviderKey, query: string, keyword?: string): Promise<string> {
+export async function fetchProviderResults(provider: ProviderKey, query: string, keyword?: string): Promise<{ text: string; rankingAnalysis?: RankingAnalysisResponse[] }> {
   switch (provider) {
     case "claude":
       return fetchClaudeResults(query, keyword);
     case "gemini":
-      return fetchGeminiResults(query, keyword);
+      return { text: await fetchGeminiResults(query, keyword), rankingAnalysis: undefined };
     case "openai":
-      return fetchOpenAIResults(query, keyword);
+      return { text: await fetchOpenAIResults(query, keyword), rankingAnalysis: undefined };
     case "perplexity":
-      return fetchPerplexityResults(query, keyword);
+      return { text: await fetchPerplexityResults(query, keyword), rankingAnalysis: undefined };
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
@@ -195,13 +240,23 @@ export async function fetchAllProviderItems(
   query: string,
   keyword?: string
 ): Promise<Record<ProviderKey, ParsedResultItem[]>> {
-  const providers: ProviderKey[] = ["claude", "openai", "perplexity", "gemini"];
+  const providers: ProviderKey[] = ["claude", "openai", "gemini"]; // Temporarily removed perplexity due to 401 error
+  
+  // Use parallel calls with staggered start times to prevent rate limiting
   const results = await Promise.all(
-    providers.map(async (p) => {
+    providers.map(async (p, index) => {
+      // Stagger the start times slightly to avoid simultaneous requests
+      if (index > 0) {
+        await new Promise(resolve => setTimeout(resolve, 100 * index)); // 100ms, 200ms delays
+      }
+      
       try {
-        const text = await fetchProviderResults(p, query, keyword);
-        const items = parseStrictListResponse(text);
-
+        const result = await fetchProviderResults(p, query, keyword);
+        console.log(`🔍 PROVIDER ${p} RESULT:`, {
+          textLength: result.text.length,
+          rankingAnalysis: result.rankingAnalysis
+        });
+        const items = parseStrictListResponse(result.text, result.rankingAnalysis);
         return [p, items] as const;
       } catch (err) {
         console.error(`Failed to fetch from ${p}:`, err);

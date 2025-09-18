@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Star, Lightbulb, ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
-import { type ParsedResultItem, type ProviderKey } from "@/lib/api";
+import { type ParsedResultItem, type ProviderKey, type RankingAnalysisResponse } from "@/lib/api";
 import { useLocation } from "react-router-dom";
 
 export default function ResultsList({ providerItems }: { providerItems: Record<ProviderKey, ParsedResultItem[]> }) {
@@ -26,23 +26,25 @@ export default function ResultsList({ providerItems }: { providerItems: Record<P
 
   const paramsForMap = new URLSearchParams(location.search);
   const activeTarget = (paramsForMap.get('target') || '').toLowerCase();
-  const results = (items ?? []).map((it, idx) => ({
-    id: idx + 1,
-    ranking: `#${it.rank}`,
-    rankingBg: idx === 0 ? "from-orange-500 to-orange-600" : idx === 1 ? "from-purple-500 to-purple-600" : "from-slate-600 to-slate-700",
-    title: it.title,
-    website: it.website || "",
-    description: it.description,
-    rating: it.rating || "",
-    priceRange: it.priceRange || "",
-    category: it.category || "",
-    categoryColor: "bg-slate-100 text-slate-800",
-    isTarget: activeTarget ? it.title.toLowerCase().includes(activeTarget) : false,
-  }));
 
   return (
     <div className="space-y-4">
-      {results.map((result) => (
+      {(items ?? []).map((it, idx) => {
+        const result = {
+          id: idx + 1,
+          ranking: `#${it.rank}`,
+          rankingBg: idx === 0 ? "from-orange-500 to-orange-600" : idx === 1 ? "from-purple-500 to-purple-600" : "from-slate-600 to-slate-700",
+          title: it.title,
+          website: it.website || "",
+          description: it.description,
+          rating: it.rating || "",
+          priceRange: it.priceRange || "",
+          category: it.category || "",
+          categoryColor: "bg-slate-100 text-slate-800",
+          isTarget: activeTarget ? it.title.toLowerCase().includes(activeTarget) : false,
+        };
+
+        return (
         <div 
           key={result.id} 
           className={`bg-white rounded-xl shadow-sm relative ${
@@ -106,13 +108,31 @@ export default function ResultsList({ providerItems }: { providerItems: Record<P
                   <ChevronDown className="w-[14px] h-[14px] flex-shrink-0 transition-transform group-open:rotate-180" />
                 </summary>
                 <div className="mt-2 text-sm text-geo-slate-600 leading-relaxed">
-                  {result.why || 'Ranked based on relevance, sentiment, and target match.'}
+                  {(() => {
+                    console.log(`🔍 DISPLAYING FOR ITEM #${it.rank}:`, {
+                      title: it.title,
+                      rankingAnalysis: it.rankingAnalysis,
+                      why: it.why
+                    });
+                    return null;
+                  })()}
+                  {it.rankingAnalysis?.llm_reasoning ? (
+                    <div className="bg-slate-50 rounded-lg p-3">
+                      <div className="font-medium text-slate-800 mb-2">Why this ranking?</div>
+                      <div className="text-sm text-slate-700">
+                        {it.rankingAnalysis.llm_reasoning}
+                      </div>
+                    </div>
+                  ) : (
+                    'Ranking analysis not available for this item.'
+                  )}
                 </div>
               </details>
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
