@@ -608,7 +608,7 @@ export async function fetchPerplexityResults(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    }), 16000); // 16 second timeout for client
+    }), 10000); // 10 second timeout for client
     
     if (!resp.ok) {
       const errorText = await resp.text();
@@ -761,7 +761,7 @@ export async function fetchAllProviderItems(
       try {
         // Add retry logic with 15-second timeout to each provider call
         const result = await withRetry(async () => {
-          return await withTimeout(fetchProviderResults(p, query, keyword, pageType), 15000);
+          return await withTimeout(fetchProviderResults(p, query, keyword, pageType), 10000);
         }, 1, 1000); // 1 retry with 1s base delay
         
         console.log(`🔍 PROVIDER ${p} RESULT:`, {
