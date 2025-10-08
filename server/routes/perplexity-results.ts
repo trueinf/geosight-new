@@ -207,69 +207,46 @@ ABSOLUTE REQUIREMENTS:
 - Do NOT deviate from this format
 - CRITICAL: Organize your response into 4 distinct categories with 5 hotels each. Do NOT return a flat list of 20 hotels.
 
-IMPORTANT: 
-- Replace ALL placeholder text with real hotel information
-- Provide actual hotel names from real establishments
-- Write detailed descriptions (at least 2-3 sentences about amenities, location, features)
-- For Website field: Use ONLY the domain name (e.g., "marriott.com", "hilton.com") - NO full URLs or HTML links
-- Use real ratings and prices when known
-- Return EXACTLY 5 items per category.
+Provide 20 hotels in 4 categories (5 each): Best Hotels, Luxury Hotels, Business Hotels, Family Hotels. Use real names and brief descriptions.
 
-REMEMBER: You must organize your response into 4 categories:
-1. **Best Hotels (5 results):** - 5 hotels
-2. **Best Luxury Hotels (5 results):** - 5 different luxury hotels  
-3. **Best Business Hotels (5 results):** - 5 different business hotels
-4. **Best Family Hotels (5 results):** - 5 different family hotels
-
-Total: 20 unique hotels across 4 categories.
-
-START YOUR RESPONSE NOW WITH: "**Best Hotels (5 results):**"`;
-      maxTokens = 800; // Increased for better responses
+**Best Hotels (5 results):**`;
+          maxTokens = 200; // Reduced for faster responses
     } else {
       // Generic query - 5 results only
       prompt = `Query: "${user_query}"
 
-Provide exactly 5 relevant results with REAL information. Do NOT use placeholder text like [Item Name] or [Brief description]. Use actual names, descriptions, and website URLs.
-
-Format each result exactly like this:
+Provide 5 results with real names and brief descriptions.
 
 1. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
 
 2. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
 
 3. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
 
 4. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
 
 5. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
-
-IMPORTANT: 
-- Replace ALL placeholder text with real information
-- Provide actual product/service names
-- Write detailed descriptions (at least 1-2 sentences)
-- For Website field: Use ONLY the domain name (e.g., "brooksrunning.com", "saucony.com") - NO full URLs or HTML links
-- Use real ratings and prices when known`;
-      maxTokens = 600; // Increased for better responses
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]`;
+          maxTokens = 300; // Reduced for faster responses
     }
 
     // Simplified prompt for faster response
@@ -279,7 +256,7 @@ IMPORTANT: Provide EXACTLY ${expectedItems} items. Keep response concise and fas
 
     // Create multiple timeout layers to prevent 504 errors
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 9000); // 9 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 second timeout
     
     let response;
     let text = "";
@@ -305,7 +282,7 @@ Please try again in a few moments, or consider using one of the other AI provide
               }
             }]
           });
-        }, 7000); // 7 second fallback
+        }, 4000); // 4 second fallback
       });
       
       const apiPromise = fetch(OPENROUTER_URL, {
