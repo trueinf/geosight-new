@@ -58,9 +58,9 @@ export const handler: Handler = async (event, context) => {
     const { req, res, getResponse } = createReqRes();
     
     try {
-      // Reduced timeout to 8 seconds to avoid Netlify 10s limit
+      // Increased timeout to 9.5 seconds to give APIs more time
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Function timeout after 8 seconds')), 8000);
+        setTimeout(() => reject(new Error('Function timeout after 9.5 seconds')), 9500);
       });
       
       const claudePromise = handleClaudeResults(req, res, () => {});
@@ -93,9 +93,9 @@ export const handler: Handler = async (event, context) => {
     const { req, res, getResponse } = createReqRes();
     
     try {
-      // Reduced timeout to 8 seconds to avoid Netlify 10s limit
+      // Increased timeout to 9.5 seconds to give APIs more time
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Function timeout after 8 seconds')), 8000);
+        setTimeout(() => reject(new Error('Function timeout after 9.5 seconds')), 9500);
       });
       
       const openaiPromise = handleOpenAIResults(req, res, () => {});
@@ -127,9 +127,9 @@ export const handler: Handler = async (event, context) => {
     const { req, res, getResponse } = createReqRes();
     
     try {
-      // Reduced timeout to 8 seconds to avoid Netlify 10s limit
+      // Increased timeout to 9.5 seconds to give APIs more time
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Function timeout after 8 seconds')), 8000);
+        setTimeout(() => reject(new Error('Function timeout after 9.5 seconds')), 9500);
       });
       
       const geminiPromise = handleGeminiResults(req, res, () => {});
@@ -162,9 +162,9 @@ export const handler: Handler = async (event, context) => {
     const { req, res, getResponse } = createReqRes();
     
     try {
-      // Reduced timeout to 8 seconds to avoid Netlify 10s limit
+      // Increased timeout to 9.5 seconds to give APIs more time
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Function timeout after 8 seconds')), 8000);
+        setTimeout(() => reject(new Error('Function timeout after 9.5 seconds')), 9500);
       });
       
       console.log('🔍 Calling handlePerplexityResults...');

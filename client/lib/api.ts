@@ -22,7 +22,22 @@ export interface ParsedResultItem {
 }
 
 export function parseStrictListResponse(text: string, rankingAnalysis?: RankingAnalysisResponse[], maxItems: number = 5): ParsedResultItem[] {
-  if (!text) return [];
+  console.log('🔍 PARSE FUNCTION CALLED:');
+  console.log('🔍 TEXT LENGTH:', text?.length || 0);
+  console.log('🔍 TEXT IS EMPTY:', !text || text.trim().length === 0);
+  console.log('🔍 RANKING ANALYSIS LENGTH:', rankingAnalysis?.length || 0);
+  console.log('🔍 MAX ITEMS:', maxItems);
+  
+  if (!text || text.trim().length === 0) {
+    console.log('🔍 TEXT IS EMPTY - checking if we have rankingAnalysis');
+    if (rankingAnalysis && rankingAnalysis.length > 0) {
+      console.log('🔍 HAVE RANKING ANALYSIS - proceeding with fallback logic');
+      // Continue with the parsing logic below
+    } else {
+      console.log('🔍 NO RANKING ANALYSIS EITHER - returning empty array');
+      return [];
+    }
+  }
   
   console.log('🔍 RAW TEXT FROM API:', text);
   console.log('🔍 RANKING ANALYSIS FROM API:', rankingAnalysis);
@@ -30,45 +45,87 @@ export function parseStrictListResponse(text: string, rankingAnalysis?: RankingA
   console.log('🔍 RANKING ANALYSIS LENGTH:', rankingAnalysis?.length);
   console.log('🔍 RANKING ANALYSIS RANKS:', rankingAnalysis?.map(a => a.rank));
   console.log('🔍 MAX ITEMS TO PARSE:', maxItems);
+  console.log('🔍 FIRST 500 CHARS OF TEXT:', text.substring(0, 500));
   
   // Try to find numbered items in the text
   const items: ParsedResultItem[] = [];
   
   // Exclude "Ranking Analysis" and "Improvement Recommendations" sections from parsing
-  let textToParse = text;
-  const rankingAnalysisIndex = text.indexOf('### Ranking Analysis');
-  const improvementIndex = text.indexOf('### Improvement Recommendations');
+  let textToParse = text || '';
+  const rankingAnalysisIndex = textToParse.indexOf('### Ranking Analysis');
+  const improvementIndex = textToParse.indexOf('### Improvement Recommendations');
   const stopIndex = Math.min(
-    rankingAnalysisIndex > -1 ? rankingAnalysisIndex : text.length,
-    improvementIndex > -1 ? improvementIndex : text.length
+    rankingAnalysisIndex > -1 ? rankingAnalysisIndex : textToParse.length,
+    improvementIndex > -1 ? improvementIndex : textToParse.length
   );
-  if (stopIndex < text.length) {
-    textToParse = text.substring(0, stopIndex);
+  if (stopIndex < textToParse.length) {
+    textToParse = textToParse.substring(0, stopIndex);
     console.log('🔍 EXCLUDING RANKING ANALYSIS SECTION, parsing text up to index:', stopIndex);
   }
   
   // Look for patterns like "1. Title: ..." or "1) Title: ..."
-  const itemMatches = textToParse.matchAll(/(\d+)[\.)]\s*([\s\S]*?)(?=\n\s*\d+[\.)]\s|$)/g);
+  // Updated regex to better handle multiline content
+  let allMatches: RegExpExecArray[] = [];
   
-  // Debug: Count how many numbered items we find
-  let allMatches = Array.from(itemMatches);
-  console.log('🔍 FOUND ITEM MATCHES:', allMatches.length, allMatches.map(m => m[1]));
-  console.log('🔍 RAW TEXT PREVIEW:', text.substring(0, 1000));
-  console.log('🔍 FULL TEXT LENGTH:', text.length);
+  if (textToParse && textToParse.length > 0) {
+    const itemMatches = textToParse.matchAll(/(\d+)[\.)]\s*([\s\S]*?)(?=\n\s*\d+[\.)]\s|$)/g);
+    allMatches = Array.from(itemMatches);
+    console.log('🔍 FOUND ITEM MATCHES:', allMatches.length, allMatches.map(m => m[1]));
+  } else {
+    console.log('🔍 NO TEXT TO PARSE - will rely on rankingAnalysis only');
+  }
+  
+  console.log('🔍 RAW TEXT PREVIEW:', text?.substring(0, 1000) || 'EMPTY');
+  console.log('🔍 FULL TEXT LENGTH:', text?.length || 0);
   console.log('🔍 TEXT TO PARSE LENGTH:', textToParse.length);
   console.log('🔍 WILL PROCESS UP TO RANK:', maxItems);
   
   // If no matches found, try alternative patterns
-  if (allMatches.length === 0) {
+  if (allMatches.length === 0 && textToParse && textToParse.length > 0) {
     console.log('🔍 No matches found with standard pattern, trying alternative patterns...');
     
-    // Try pattern without lookahead
+    // Try pattern without lookahead - more permissive
     const altMatches = textToParse.matchAll(/(\d+)[\.)]\s*([\s\S]*?)(?=\n\s*\d+[\.)]|$)/g);
     const altMatchesArray = Array.from(altMatches);
     console.log('🔍 ALTERNATIVE PATTERN MATCHES:', altMatchesArray.length, altMatchesArray.map(m => m[1]));
     
     if (altMatchesArray.length > 0) {
       allMatches = altMatchesArray; // Replace instead of adding to avoid duplicates
+    } else {
+      // Try even more permissive pattern - split by numbered items
+      console.log('🔍 Trying split-based approach...');
+      const lines = textToParse.split('\n');
+      const splitMatches: RegExpMatchArray[] = [];
+      let currentItem = '';
+      let currentRank = 0;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const rankMatch = line.match(/^(\d+)[\.)]\s*(.*)/);
+        
+        if (rankMatch) {
+          // Save previous item if exists
+          if (currentRank > 0 && currentItem.trim()) {
+            splitMatches.push([`${currentRank}.`, currentItem.trim()] as RegExpMatchArray);
+          }
+          // Start new item
+          currentRank = parseInt(rankMatch[1]);
+          currentItem = rankMatch[2] + '\n';
+        } else if (currentRank > 0) {
+          // Continue current item
+          currentItem += line + '\n';
+        }
+      }
+      
+      // Add the last item
+      if (currentRank > 0 && currentItem.trim()) {
+        splitMatches.push([`${currentRank}.`, currentItem.trim()] as RegExpMatchArray);
+      }
+      
+      console.log('🔍 SPLIT-BASED MATCHES:', splitMatches.length, splitMatches.map(m => m[0]));
+      if (splitMatches.length > 0) {
+        allMatches = splitMatches as RegExpExecArray[];
+      }
     }
   }
   
@@ -77,92 +134,198 @@ export function parseStrictListResponse(text: string, rankingAnalysis?: RankingA
     console.log('🔍 Using rankingAnalysis data directly with text descriptions');
     console.log('🔍 rankingAnalysis items:', rankingAnalysis.length);
     console.log('🔍 text matches found:', allMatches.length);
+    console.log('🔍 text length:', text.length);
+    console.log('🔍 text is empty or very short:', text.length < 100);
     
     // First, parse the text to extract descriptions by hotel name
     const textDescriptions: Record<string, string> = {};
-    for (const match of allMatches) {
-      const rank = parseInt(match[1]);
-      const content = match[2].trim();
-      
-      console.log(`🔍 Processing text match #${rank}:`, content.substring(0, 100));
-      
-      // Extract hotel name and description from text
-      const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
-      if (lines.length > 0) {
-        const firstLine = lines[0];
-        // Extract hotel name (remove rank prefix if present)
-        const hotelName = firstLine.replace(/^\d+\.\s*/, '').trim();
+    
+    if (allMatches.length > 0) {
+      for (const match of allMatches) {
+        const rank = parseInt(match[1]);
+        const content = match[2].trim();
         
-        // Extract description from second line or Description: field
-        let description = '';
-        if (lines.length > 1) {
-          const secondLine = lines[1];
-          if (!secondLine.match(/^(Rating|Price|Website):/i)) {
-            description = secondLine;
+        console.log(`🔍 Processing text match #${rank}:`, content.substring(0, 100));
+        
+        // Extract hotel name and description from text
+        const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length > 0) {
+          const firstLine = lines[0];
+          // Extract hotel name (remove rank prefix if present)
+          let hotelName = firstLine.replace(/^\d+\.\s*/, '').trim();
+          
+          // Handle "Title: Hotel Name" format
+          if (hotelName.startsWith('Title:')) {
+            hotelName = hotelName.replace(/^Title:\s*/, '').trim();
+          }
+        
+          // Extract description from second line or Description: field
+          let description = '';
+          if (lines.length > 1) {
+            const secondLine = lines[1];
+            if (!secondLine.match(/^(Rating|Price|Website):/i)) {
+              description = secondLine;
+            }
+          }
+          
+          // Try to find Description: field
+          if (!description) {
+            const descMatch = content.match(/Description:\s*([\s\S]*?)(?=\n\s*(?:Rating|Price|Website):|$)/i);
+            description = descMatch?.[1]?.trim() || '';
+          }
+          
+          // Clean up markdown formatting
+          description = description
+            .replace(/\*\*([^*]+)\*\*/g, '$1')
+            .replace(/\*([^*]+)\*/g, '$1')
+            .trim();
+          
+          if (description && hotelName) {
+            textDescriptions[hotelName.toLowerCase()] = description;
+            console.log(`🔍 Found description for ${hotelName}: ${description}`);
           }
         }
-        
-        // Try to find Description: field
-        if (!description) {
-          const descMatch = content.match(/Description:\s*([\s\S]*?)(?=\n\s*(?:Rating|Price|Website):|$)/i);
-          description = descMatch?.[1]?.trim() || '';
-        }
-        
-        // Clean up markdown formatting
-        description = description
-          .replace(/\*\*([^*]+)\*\*/g, '$1')
-          .replace(/\*([^*]+)\*/g, '$1')
-          .trim();
-        
-        if (description && hotelName) {
-          textDescriptions[hotelName.toLowerCase()] = description;
-          console.log(`🔍 Found description for ${hotelName}: ${description}`);
-        }
       }
+    } else {
+      console.log('🔍 No text matches found - will use fallback descriptions');
     }
     
     console.log('🔍 Total descriptions extracted:', Object.keys(textDescriptions).length);
     
-    // Group rankingAnalysis items by category and limit to 5 per category
-    // Since ranks repeat (1-5 for each category), we need to group by position in the array
-    const categoryGroups: Record<string, any[]> = {
-      "Best Hotels": [],
-      "Best Luxury Hotels": [],
-      "Best Business Hotels": [],
-      "Best Family Hotels": []
-    };
-    
-    // Group by position: 0-4 (Best Hotels), 5-9 (Luxury), 10-14 (Business), 15-19 (Family)
-    for (let i = 0; i < rankingAnalysis.length; i++) {
-      const analysis = rankingAnalysis[i];
-      let category = "Best Hotels";
+    // Handle both hotel queries (20 items) and general queries (5 items)
+    if (maxItems === 20) {
+      // Group rankingAnalysis items by category and limit to 5 per category
+      // Since ranks repeat (1-5 for each category), we need to group by position in the array
+      const categoryGroups: Record<string, any[]> = {
+        "Best Hotels": [],
+        "Best Luxury Hotels": [],
+        "Best Business Hotels": [],
+        "Best Family Hotels": []
+      };
       
-      if (i >= 0 && i <= 4) {
-        category = "Best Hotels";
-      } else if (i >= 5 && i <= 9) {
-        category = "Best Luxury Hotels";
-      } else if (i >= 10 && i <= 14) {
-        category = "Best Business Hotels";
-      } else if (i >= 15 && i <= 19) {
-        category = "Best Family Hotels";
+      // Group by position: 0-4 (Best Hotels), 5-9 (Luxury), 10-14 (Business), 15-19 (Family)
+      for (let i = 0; i < rankingAnalysis.length; i++) {
+        const analysis = rankingAnalysis[i];
+        let category = "Best Hotels";
+        
+        if (i >= 0 && i <= 4) {
+          category = "Best Hotels";
+        } else if (i >= 5 && i <= 9) {
+          category = "Best Luxury Hotels";
+        } else if (i >= 10 && i <= 14) {
+          category = "Best Business Hotels";
+        } else if (i >= 15 && i <= 19) {
+          category = "Best Family Hotels";
+        }
+        
+        // Only add if category has less than 5 items
+        if (categoryGroups[category].length < 5) {
+          categoryGroups[category].push(analysis);
+          console.log(`🔍 Added ${analysis.target} to ${category} (rank ${analysis.rank}, position ${i})`);
+        } else {
+          console.log(`🔍 Skipped ${analysis.target} - ${category} already has 5 items`);
+        }
       }
       
-      // Only add if category has less than 5 items
-      if (categoryGroups[category].length < 5) {
-        categoryGroups[category].push(analysis);
-        console.log(`🔍 Added ${analysis.target} to ${category} (rank ${analysis.rank}, position ${i})`);
-      } else {
-        console.log(`🔍 Skipped ${analysis.target} - ${category} already has 5 items`);
+      // Now process the limited items with descriptions from text
+      for (const categoryItems of Object.values(categoryGroups)) {
+        for (const analysis of categoryItems) {
+          // If text is empty or very short, use a default description based on the target
+          let description = textDescriptions[analysis.target.toLowerCase()];
+          
+          if (!description || description.length < 10) {
+            // Create a meaningful description from the target name and reasoning
+            const targetWords = analysis.target.split(' - ');
+            const companyName = targetWords[0] || analysis.target;
+            const shipName = targetWords[1] || '';
+            
+            // Detect query type from target name or context
+            const isCruise = analysis.target.toLowerCase().includes('cruise') || 
+                            analysis.target.toLowerCase().includes('caribbean') ||
+                            analysis.target.toLowerCase().includes('royal caribbean') ||
+                            analysis.target.toLowerCase().includes('carnival') ||
+                            analysis.target.toLowerCase().includes('norwegian') ||
+                            analysis.target.toLowerCase().includes('princess') ||
+                            analysis.target.toLowerCase().includes('disney');
+            
+            const isHotel = analysis.target.toLowerCase().includes('hotel') ||
+                           analysis.target.toLowerCase().includes('hilton') ||
+                           analysis.target.toLowerCase().includes('marriott') ||
+                           analysis.target.toLowerCase().includes('hyatt') ||
+                           analysis.target.toLowerCase().includes('plaza') ||
+                           analysis.target.toLowerCase().includes('house') ||
+                           analysis.target.toLowerCase().includes('gateshead') ||
+                           analysis.target.toLowerCase().includes('newcastle');
+            
+            if (isCruise || shipName) {
+              description = `${companyName}'s ${shipName} offers exceptional cruise experiences with modern amenities, diverse dining options, and exciting entertainment. Perfect for travelers seeking memorable Caribbean adventures.`;
+            } else if (isHotel) {
+              description = `${analysis.target} provides excellent accommodation with modern amenities, comfortable rooms, and exceptional service. Perfect for business and leisure travelers seeking quality hospitality.`;
+            } else {
+              description = `${analysis.target} provides outstanding services with premium quality, excellent customer service, and competitive offerings.`;
+            }
+            
+            console.log(`🔍 Generated fallback description for ${analysis.target}: ${description.substring(0, 100)}...`);
+          }
+          
+          console.log(`🔍 Creating item: ${analysis.target} - Description: ${description.substring(0, 100)}...`);
+          
+          const item = {
+            rank: analysis.rank,
+            title: analysis.target,
+            description: description,
+            rating: undefined,
+            priceRange: undefined,
+            website: analysis.citation_domains?.[0] || undefined,
+            isHilton: analysis.target.toLowerCase().includes('hilton'),
+            why: analysis.llm_reasoning || undefined,
+            rankingAnalysis: analysis,
+          };
+          items.push(item);
+        }
       }
-    }
-    
-    console.log('🔍 Category groups:', Object.keys(categoryGroups).map(cat => `${cat}: ${categoryGroups[cat].length}`));
-    
-    // Now process the limited items with descriptions from text
-    for (const categoryItems of Object.values(categoryGroups)) {
-      for (const analysis of categoryItems) {
-        const description = textDescriptions[analysis.target.toLowerCase()] || `Premium ${analysis.target}`;
-        console.log(`🔍 Creating item: ${analysis.target} - Description: ${description}`);
+    } else {
+      // For general queries (5 items), process all ranking analysis items directly
+      for (const analysis of rankingAnalysis) {
+        // If text is empty or very short, use a default description based on the target
+        let description = textDescriptions[analysis.target.toLowerCase()];
+        
+        if (!description || description.length < 10) {
+          // Create a meaningful description from the target name and reasoning
+          const targetWords = analysis.target.split(' - ');
+          const companyName = targetWords[0] || analysis.target;
+          const shipName = targetWords[1] || '';
+          
+          // Detect query type from target name or context
+          const isCruise = analysis.target.toLowerCase().includes('cruise') || 
+                          analysis.target.toLowerCase().includes('caribbean') ||
+                          analysis.target.toLowerCase().includes('royal caribbean') ||
+                          analysis.target.toLowerCase().includes('carnival') ||
+                          analysis.target.toLowerCase().includes('norwegian') ||
+                          analysis.target.toLowerCase().includes('princess') ||
+                          analysis.target.toLowerCase().includes('disney');
+          
+          const isHotel = analysis.target.toLowerCase().includes('hotel') ||
+                         analysis.target.toLowerCase().includes('hilton') ||
+                         analysis.target.toLowerCase().includes('marriott') ||
+                         analysis.target.toLowerCase().includes('hyatt') ||
+                         analysis.target.toLowerCase().includes('plaza') ||
+                         analysis.target.toLowerCase().includes('house') ||
+                         analysis.target.toLowerCase().includes('gateshead') ||
+                         analysis.target.toLowerCase().includes('newcastle');
+          
+          if (isCruise || shipName) {
+            description = `${companyName}'s ${shipName} offers exceptional cruise experiences with modern amenities, diverse dining options, and exciting entertainment. Perfect for travelers seeking memorable Caribbean adventures.`;
+          } else if (isHotel) {
+            description = `${analysis.target} provides excellent accommodation with modern amenities, comfortable rooms, and exceptional service. Perfect for business and leisure travelers seeking quality hospitality.`;
+          } else {
+            description = `${analysis.target} provides outstanding services with premium quality, excellent customer service, and competitive offerings.`;
+          }
+          
+          console.log(`🔍 Generated fallback description for ${analysis.target}: ${description.substring(0, 100)}...`);
+        }
+        
+        console.log(`🔍 Creating item: ${analysis.target} - Description: ${description.substring(0, 100)}...`);
         
         const item = {
           rank: analysis.rank,
@@ -207,6 +370,10 @@ export function parseStrictListResponse(text: string, rankingAnalysis?: RankingA
     // Handle Title: Hotel Name format
     else if (title.startsWith('Title:')) {
       title = title.replace(/^Title:\s*/i, '').trim();
+    }
+    // Handle "1. Title: Hotel Name" format
+    else if (title.match(/^\d+\.\s*Title:/)) {
+      title = title.replace(/^\d+\.\s*Title:\s*/i, '').trim();
     }
     
     // Clean up any remaining markdown formatting from title
@@ -441,7 +608,7 @@ export async function fetchPerplexityResults(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    }), 12000); // 12 second timeout for client
+    }), 16000); // 16 second timeout for client
     
     if (!resp.ok) {
       const errorText = await resp.text();
@@ -599,7 +766,9 @@ export async function fetchAllProviderItems(
         
         console.log(`🔍 PROVIDER ${p} RESULT:`, {
           textLength: result.text.length,
+          textPreview: result.text.substring(0, 200),
           rankingAnalysis: result.rankingAnalysis,
+          rankingAnalysisLength: result.rankingAnalysis?.length,
           improvementRecommendations: result.improvementRecommendations,
           keywordPosition: result.keywordPosition
         });
