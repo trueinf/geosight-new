@@ -230,14 +230,28 @@ Website: standardbrand.com`;
       improvementRecommendations = [
         {
           "title": "Enhance Online Presence",
-          "description": `Optimize website content with relevant keywords to improve visibility in search results for ${monitoring_keyword}.`,
+          "description": `Optimize website content with relevant keywords to improve visibility in search results and attract more online bookings for ${monitoring_keyword}.`,
           "category": "SEO & Content Strategy",
           "timeframe": "immediate",
           "expectedImpact": "Improved search engine ranking and increased website traffic."
         },
         {
-          "title": "Improve User Experience",
-          "description": `Focus on enhancing user experience and website performance to better serve customers looking for ${monitoring_keyword}.`,
+          "title": "Collaborate with Influential Reviewers",
+          "description": `Partner with popular industry influencers to showcase the unique offerings and experiences of ${monitoring_keyword}, increasing brand visibility.`,
+          "category": "Authority & Citation Strategy",
+          "timeframe": "mid-term",
+          "expectedImpact": "Expanded reach and enhanced credibility among target audience."
+        },
+        {
+          "title": "Create Exclusive Brand Programs",
+          "description": `Develop tailored programs for customers, providing incentives for repeat engagement and fostering brand loyalty for ${monitoring_keyword}.`,
+          "category": "Brand Strategy",
+          "timeframe": "long-term",
+          "expectedImpact": "Increased customer retention and positive brand association."
+        },
+        {
+          "title": "Implement Mobile-Friendly Website Design",
+          "description": `Optimize the website for mobile users to enhance user experience and accessibility, catering to the growing number of users accessing ${monitoring_keyword} via mobile devices.`,
           "category": "Technical Improvements",
           "timeframe": "immediate",
           "expectedImpact": "Higher conversion rates and improved customer satisfaction."
