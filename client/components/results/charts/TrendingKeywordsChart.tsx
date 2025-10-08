@@ -15,10 +15,10 @@ const mockData: TrendingKeyword[] = [
   { keyword: "nike pegasus", growth_pct: 35 },
   { keyword: "adidas ultraboost", growth_pct: 22 },
   { keyword: "brooks ghost", growth_pct: 18 },
-  { keyword: "asics gel", growth_pct: 15 },
-  { keyword: "new balance", growth_pct: 12 },
-  { keyword: "hoka one one", growth_pct: 10 },
-  { keyword: "saucony triumph", growth_pct: 8 },
+  { keyword: "asics kayano", growth_pct: 15 },
+  { keyword: "hoka clifton", growth_pct: 12 },
+  { keyword: "new balance 1080", growth_pct: 10 },
+  { keyword: "saucony ride", growth_pct: 8 },
   { keyword: "mizuno wave", growth_pct: 6 }
 ];
 
@@ -40,46 +40,47 @@ export default function TrendingKeywordsChart({ data = mockData }: TrendingKeywo
     return null;
   };
 
-  // Custom label formatter for Y-axis
+  // Custom label formatter for X-axis
   const formatKeyword = (value: string) => {
-    return value.length > 15 ? value.substring(0, 15) + '...' : value;
+    return value.length > 12 ? value.substring(0, 12) + '...' : value;
   };
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
       <div className="flex items-center gap-2 mb-4">
         <TrendingUp className="w-[18px] h-[18px] text-geo-blue-500" />
-        <h3 className="text-lg font-bold text-geo-slate-900">Trending Keywords Growth</h3>
+        <h3 className="text-lg font-bold text-geo-slate-900">Trending Keywords Growth (%)</h3>
       </div>
       
-      <div className="h-[300px]">
+      <div className="h-[400px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
-            layout="horizontal"
-            margin={{ top: 20, right: 30, left: 80, bottom: 20 }}
+            margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
             <XAxis 
-              type="number" 
-              domain={[0, 'dataMax']}
-              tickFormatter={(value) => `${value}%`}
-              stroke="#64748b"
-              fontSize={12}
-            />
-            <YAxis 
-              type="category" 
               dataKey="keyword"
               tickFormatter={formatKeyword}
               stroke="#64748b"
               fontSize={12}
-              width={75}
+              angle={-45}
+              textAnchor="end"
+              height={80}
+              interval={0}
+            />
+            <YAxis 
+              domain={[0, 40]}
+              tickFormatter={(value) => `${value}`}
+              stroke="#64748b"
+              fontSize={12}
+              label={{ value: 'Growth (%)', angle: -90, position: 'insideLeft' }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Bar 
               dataKey="growth_pct" 
-              fill="#3b82f6"
-              radius={[0, 4, 4, 0]}
+              fill="#f59e0b"
+              radius={[4, 4, 0, 0]}
             />
           </BarChart>
         </ResponsiveContainer>

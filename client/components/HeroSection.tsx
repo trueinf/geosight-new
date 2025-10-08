@@ -78,6 +78,29 @@ export default function HeroSection() {
                   />
                   <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-geo-slate-400" />
                 </div>
+                {/* Query Suggestions */}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {[
+                    "best wireless earbuds 2024",
+                    "top smartphones under $800", 
+                    "premium coffee machines",
+                    "best gaming laptops",
+                    "running shoes for beginners"
+                  ].map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => {
+                        if (queryRef.current) {
+                          queryRef.current.value = suggestion;
+                        }
+                      }}
+                      className="px-3 py-1 text-xs bg-blue-50 text-blue-700 rounded-full border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-all"
+                    >
+                      #{suggestion}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Target Brand/Product */}
@@ -94,6 +117,31 @@ export default function HeroSection() {
                     ref={targetRef}
                   />
                   <Target className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-geo-slate-400" />
+                </div>
+                {/* Target Suggestions */}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {[
+                    "Apple AirPods Pro",
+                    "iPhone 15",
+                    "Nike Air Zoom Pegasus",
+                    "Breville Barista Express",
+                    "ASUS ROG Strix",
+                    "Samsung Galaxy S24",
+                    "MacBook Pro M3"
+                  ].map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => {
+                        if (targetRef.current) {
+                          targetRef.current.value = suggestion;
+                        }
+                      }}
+                      className="px-3 py-1 text-xs bg-orange-50 text-orange-700 rounded-full border border-orange-200 hover:bg-orange-100 hover:border-orange-300 transition-all"
+                    >
+                      #{suggestion}
+                    </button>
+                  ))}
                 </div>
               </div>
 

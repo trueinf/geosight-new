@@ -1,7 +1,7 @@
-import type { ClaudeResultsRequest, ClaudeResultsResponse, GeminiResultsRequest, GeminiResultsResponse, OpenAIResultsRequest, OpenAIResultsResponse, PerplexityResultsRequest, PerplexityResultsResponse, RankingAnalysisRequest, RankingAnalysisResponse } from "@shared/api";
+import type { ClaudeResultsRequest, ClaudeResultsResponse, GeminiResultsRequest, GeminiResultsResponse, OpenAIResultsRequest, OpenAIResultsResponse, PerplexityResultsRequest, PerplexityResultsResponse, RankingAnalysisRequest, RankingAnalysisResponse, ImprovementRecommendation } from "@shared/api";
 
 // Re-export for use in components
-export type { RankingAnalysisResponse } from "@shared/api";
+export type { RankingAnalysisResponse, ImprovementRecommendation } from "@shared/api";
 
 export interface ParsedResultItem {
   rank: number;
@@ -13,34 +13,203 @@ export interface ParsedResultItem {
   category?: string; // e.g., Stability / Support / Neutral
   why?: string; // brief reason for position
   rankingAnalysis?: RankingAnalysisResponse; // detailed ranking analysis
+  isHilton?: boolean; // true if Hilton or Hilton-owned property
+  // New fields for target-centric analysis
+  keywords?: string[]; // relevant keywords found
+  authority?: number; // authority score 0-1
+  context?: string; // contextual information
+  citations?: string[]; // source domains/citations
 }
 
-export function parseStrictListResponse(text: string, rankingAnalysis?: RankingAnalysisResponse[]): ParsedResultItem[] {
+export function parseStrictListResponse(text: string, rankingAnalysis?: RankingAnalysisResponse[], maxItems: number = 5): ParsedResultItem[] {
   if (!text) return [];
   
   console.log('🔍 RAW TEXT FROM API:', text);
   console.log('🔍 RANKING ANALYSIS FROM API:', rankingAnalysis);
-
-
+  console.log('🔍 RANKING ANALYSIS TYPE:', typeof rankingAnalysis);
+  console.log('🔍 RANKING ANALYSIS LENGTH:', rankingAnalysis?.length);
+  console.log('🔍 RANKING ANALYSIS RANKS:', rankingAnalysis?.map(a => a.rank));
+  console.log('🔍 MAX ITEMS TO PARSE:', maxItems);
+  
   // Try to find numbered items in the text
   const items: ParsedResultItem[] = [];
   
-  // Look for patterns like "1. Title: ..." or "1) Title: ..."
-  const itemMatches = text.matchAll(/(\d+)[\.)]\s*([\s\S]*?)(?=\n\s*\d+[\.)]\s|$)/g);
+  // Exclude "Ranking Analysis" and "Improvement Recommendations" sections from parsing
+  let textToParse = text;
+  const rankingAnalysisIndex = text.indexOf('### Ranking Analysis');
+  const improvementIndex = text.indexOf('### Improvement Recommendations');
+  const stopIndex = Math.min(
+    rankingAnalysisIndex > -1 ? rankingAnalysisIndex : text.length,
+    improvementIndex > -1 ? improvementIndex : text.length
+  );
+  if (stopIndex < text.length) {
+    textToParse = text.substring(0, stopIndex);
+    console.log('🔍 EXCLUDING RANKING ANALYSIS SECTION, parsing text up to index:', stopIndex);
+  }
   
-  for (const match of itemMatches) {
+  // Look for patterns like "1. Title: ..." or "1) Title: ..."
+  const itemMatches = textToParse.matchAll(/(\d+)[\.)]\s*([\s\S]*?)(?=\n\s*\d+[\.)]\s|$)/g);
+  
+  // Debug: Count how many numbered items we find
+  let allMatches = Array.from(itemMatches);
+  console.log('🔍 FOUND ITEM MATCHES:', allMatches.length, allMatches.map(m => m[1]));
+  console.log('🔍 RAW TEXT PREVIEW:', text.substring(0, 1000));
+  console.log('🔍 FULL TEXT LENGTH:', text.length);
+  console.log('🔍 TEXT TO PARSE LENGTH:', textToParse.length);
+  console.log('🔍 WILL PROCESS UP TO RANK:', maxItems);
+  
+  // If no matches found, try alternative patterns
+  if (allMatches.length === 0) {
+    console.log('🔍 No matches found with standard pattern, trying alternative patterns...');
+    
+    // Try pattern without lookahead
+    const altMatches = textToParse.matchAll(/(\d+)[\.)]\s*([\s\S]*?)(?=\n\s*\d+[\.)]|$)/g);
+    const altMatchesArray = Array.from(altMatches);
+    console.log('🔍 ALTERNATIVE PATTERN MATCHES:', altMatchesArray.length, altMatchesArray.map(m => m[1]));
+    
+    if (altMatchesArray.length > 0) {
+      allMatches = altMatchesArray; // Replace instead of adding to avoid duplicates
+    }
+  }
+  
+  // If we have rankingAnalysis data, use it directly and extract descriptions from text
+  if (rankingAnalysis && rankingAnalysis.length > 0) {
+    console.log('🔍 Using rankingAnalysis data directly with text descriptions');
+    console.log('🔍 rankingAnalysis items:', rankingAnalysis.length);
+    console.log('🔍 text matches found:', allMatches.length);
+    
+    // First, parse the text to extract descriptions by hotel name
+    const textDescriptions: Record<string, string> = {};
+    for (const match of allMatches) {
+      const rank = parseInt(match[1]);
+      const content = match[2].trim();
+      
+      console.log(`🔍 Processing text match #${rank}:`, content.substring(0, 100));
+      
+      // Extract hotel name and description from text
+      const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+      if (lines.length > 0) {
+        const firstLine = lines[0];
+        // Extract hotel name (remove rank prefix if present)
+        const hotelName = firstLine.replace(/^\d+\.\s*/, '').trim();
+        
+        // Extract description from second line or Description: field
+        let description = '';
+        if (lines.length > 1) {
+          const secondLine = lines[1];
+          if (!secondLine.match(/^(Rating|Price|Website):/i)) {
+            description = secondLine;
+          }
+        }
+        
+        // Try to find Description: field
+        if (!description) {
+          const descMatch = content.match(/Description:\s*([\s\S]*?)(?=\n\s*(?:Rating|Price|Website):|$)/i);
+          description = descMatch?.[1]?.trim() || '';
+        }
+        
+        // Clean up markdown formatting
+        description = description
+          .replace(/\*\*([^*]+)\*\*/g, '$1')
+          .replace(/\*([^*]+)\*/g, '$1')
+          .trim();
+        
+        if (description && hotelName) {
+          textDescriptions[hotelName.toLowerCase()] = description;
+          console.log(`🔍 Found description for ${hotelName}: ${description}`);
+        }
+      }
+    }
+    
+    console.log('🔍 Total descriptions extracted:', Object.keys(textDescriptions).length);
+    
+    // Group rankingAnalysis items by category and limit to 5 per category
+    // Since ranks repeat (1-5 for each category), we need to group by position in the array
+    const categoryGroups: Record<string, any[]> = {
+      "Best Hotels": [],
+      "Best Luxury Hotels": [],
+      "Best Business Hotels": [],
+      "Best Family Hotels": []
+    };
+    
+    // Group by position: 0-4 (Best Hotels), 5-9 (Luxury), 10-14 (Business), 15-19 (Family)
+    for (let i = 0; i < rankingAnalysis.length; i++) {
+      const analysis = rankingAnalysis[i];
+      let category = "Best Hotels";
+      
+      if (i >= 0 && i <= 4) {
+        category = "Best Hotels";
+      } else if (i >= 5 && i <= 9) {
+        category = "Best Luxury Hotels";
+      } else if (i >= 10 && i <= 14) {
+        category = "Best Business Hotels";
+      } else if (i >= 15 && i <= 19) {
+        category = "Best Family Hotels";
+      }
+      
+      // Only add if category has less than 5 items
+      if (categoryGroups[category].length < 5) {
+        categoryGroups[category].push(analysis);
+        console.log(`🔍 Added ${analysis.target} to ${category} (rank ${analysis.rank}, position ${i})`);
+      } else {
+        console.log(`🔍 Skipped ${analysis.target} - ${category} already has 5 items`);
+      }
+    }
+    
+    console.log('🔍 Category groups:', Object.keys(categoryGroups).map(cat => `${cat}: ${categoryGroups[cat].length}`));
+    
+    // Now process the limited items with descriptions from text
+    for (const categoryItems of Object.values(categoryGroups)) {
+      for (const analysis of categoryItems) {
+        const description = textDescriptions[analysis.target.toLowerCase()] || `Premium ${analysis.target}`;
+        console.log(`🔍 Creating item: ${analysis.target} - Description: ${description}`);
+        
+        const item = {
+          rank: analysis.rank,
+          title: analysis.target,
+          description: description,
+          rating: undefined,
+          priceRange: undefined,
+          website: analysis.citation_domains?.[0] || undefined,
+          isHilton: analysis.target.toLowerCase().includes('hilton'),
+          why: analysis.llm_reasoning || undefined,
+          rankingAnalysis: analysis,
+        };
+        items.push(item);
+      }
+    }
+    
+    console.log(`🔍 Final items created: ${items.length}`);
+    return items;
+  }
+
+  // Fallback to text parsing if no rankingAnalysis data
+  for (const match of allMatches) {
     const rank = parseInt(match[1]);
-    if (rank > 5) break; // Only process first 5 items
+    console.log(`🔍 PROCESSING ITEM #${rank}:`, match[2].substring(0, 200));
+    
+    if (rank > maxItems) {
+      break;
+    }
     
     const content = match[2].trim();
     
-    // Extract title (first line or after "Title:")
+    // Extract title - handle both "Title:" and "**Title:**" formats
     let title = content.split('\n')[0].trim();
-    if (title.startsWith('Title:')) {
+    
+    // Handle **Title: Hotel Name** format
+    if (title.includes('**Title:')) {
+      const titleMatch = title.match(/\*\*Title:\s*([^*]+)\*\*/i);
+      if (titleMatch) {
+        title = titleMatch[1].trim();
+      }
+    }
+    // Handle Title: Hotel Name format
+    else if (title.startsWith('Title:')) {
       title = title.replace(/^Title:\s*/i, '').trim();
     }
     
-    // Clean up markdown formatting from title
+    // Clean up any remaining markdown formatting from title
     title = title
       .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove **bold** markdown
       .replace(/\*([^*]+)\*/g, '$1') // Remove *italic* markdown
@@ -95,42 +264,99 @@ export function parseStrictListResponse(text: string, rankingAnalysis?: RankingA
       // Try inline format like "**Website:** www.adidas.com"
       siteMatch = content.match(/\*\*Website:\*\*\s*(\S+)/i);
     }
-    const website = siteMatch?.[1]?.toLowerCase();
+    if (!siteMatch) {
+      // Try format without colon
+      siteMatch = content.match(/Website\s+(\S+)/i);
+    }
+    if (!siteMatch) {
+      // Try format with different spacing
+      siteMatch = content.match(/Website:\s*([^\n\r]+)/i);
+    }
     
+    let website = siteMatch?.[1]?.trim();
+    if (website) {
+      // Clean up the website - remove any extra text and ensure it's lowercase
+      website = website.toLowerCase()
+        .replace(/^https?:\/\//, '') // Remove http:// or https://
+        .replace(/^www\./, '') // Remove www.
+        .replace(/\/.*$/, '') // Remove any path
+        .replace(/[^\w.-]/g, '') // Remove any non-alphanumeric characters except dots and hyphens
+        .trim();
+    }
+    
+    // Debug website extraction
+    console.log(`🔍 WEBSITE EXTRACTION FOR ITEM #${rank}:`, {
+      content: content.substring(0, 300),
+      siteMatch: siteMatch?.[1],
+      finalWebsite: website,
+      hasWebsite: !!website
+    });
+    
+    // Extract IsHilton - check if "Hilton" appears in the title
+    let hiltonMatch = content.match(/IsHilton:\s*(Yes|No)/i);
+    if (!hiltonMatch) {
+      // Try inline format like "**IsHilton:** Yes"
+      hiltonMatch = content.match(/\*\*IsHilton:\*\*\s*(Yes|No)/i);
+    }
+    if (!hiltonMatch) {
+      // Try format like "IsHilton: Yes" or "IsHilton: No"
+      hiltonMatch = content.match(/IsHilton:\s*(Yes|No)/i);
+    }
     
     // Find matching ranking analysis for this item by rank position
     const matchingAnalysis = rankingAnalysis?.find(analysis => analysis.rank === rank);
     
-    console.log(`🔍 PARSED ITEM #${rank}:`, {
-      title,
-      description,
-      rating,
-      priceRange,
-      website,
-      matchingAnalysis,
-      availableRanks: rankingAnalysis?.map(a => a.rank)
+    // Use clean target from ranking analysis if available, otherwise use parsed title
+    const finalTitle = matchingAnalysis?.target || title;
+    
+    
+    // Hilton detection: Simple and reliable name-based check
+    // Only show Hilton badge if the hotel name actually contains Hilton-related terms
+    const titleLower = finalTitle.toLowerCase();
+    const isHilton = titleLower.includes('hilton');
+    
+    // Debug logging
+    console.log(`🔍 HILTON DETECTION FOR "${finalTitle}":`, {
+      titleLower,
+      isHilton,
+      hiltonMatch: hiltonMatch?.[1] || 'No API match'
     });
+    
 
-    items.push({
+    const item = {
       rank,
-      title,
+      title: finalTitle,
       description: description || undefined,
       rating,
       priceRange,
       website,
+      isHilton,
       why: matchingAnalysis?.llm_reasoning || undefined,
       rankingAnalysis: matchingAnalysis,
-    });
+    };
+    
+    items.push(item);
   }
+  
+  // Debug: Check if we got fewer results than expected
+  if (items.length < maxItems) {
+    console.warn(`🔍 WARNING: Only parsed ${items.length} items, expected ${maxItems}. This might indicate an API response issue.`);
+    console.log('🔍 Full API response text:', text);
+  }
+  
+  console.log(`🔍 FINAL PARSED ITEMS: ${items.length} out of ${maxItems} expected`);
+  console.log(`🔍 PARSED ITEM TITLES:`, items.map(item => item.title));
   
   return items;
 }
 
-export async function fetchClaudeResults(userQuery: string, monitoringKeyword: string): Promise<{ text: string; rankingAnalysis?: RankingAnalysisResponse[] }> {
+export async function fetchClaudeResults(userQuery: string, monitoringKeyword?: string, pageType?: 'results' | 'select_location'): Promise<{ text: string; rankingAnalysis?: RankingAnalysisResponse[]; improvementRecommendations?: ImprovementRecommendation[]; keywordPosition?: number; monitoringKeyword?: string; }> {
   const body: ClaudeResultsRequest = {
     user_query: userQuery,
-    monitoring_keyword: monitoringKeyword,
+    monitoring_keyword: monitoringKeyword || userQuery,
+    page_type: pageType || 'results',
   };
+  console.log('🔍 Claude API request body:', body);
   const resp = await fetch("/api/claude/results", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -138,16 +364,24 @@ export async function fetchClaudeResults(userQuery: string, monitoringKeyword: s
   });
   if (!resp.ok) throw new Error(await resp.text());
   const data = (await resp.json()) as ClaudeResultsResponse;
-  return { text: data.text, rankingAnalysis: data.rankingAnalysis };
+  return { 
+    text: data.text, 
+    rankingAnalysis: data.rankingAnalysis,
+    improvementRecommendations: data.improvementRecommendations,
+    keywordPosition: data.keywordPosition,
+    monitoringKeyword: data.monitoringKeyword
+  };
 }
 
 export async function fetchGeminiResults(
   userQuery: string,
-  monitoringKeyword?: string
-): Promise<string> {
+  monitoringKeyword?: string,
+  pageType?: 'results' | 'select_location'
+): Promise<{ text: string; rankingAnalysis?: RankingAnalysisResponse[]; improvementRecommendations?: ImprovementRecommendation[]; keywordPosition?: number; monitoringKeyword?: string; }> {
   const body: GeminiResultsRequest = {
     user_query: userQuery,
-    monitoring_keyword: monitoringKeyword,
+    monitoring_keyword: monitoringKeyword || userQuery,
+    page_type: pageType || 'results', // Default to 'results' for 5 items
   };
   const resp = await fetch("/api/gemini/results", {
     method: "POST",
@@ -156,16 +390,24 @@ export async function fetchGeminiResults(
   });
   if (!resp.ok) throw new Error(await resp.text());
   const data = (await resp.json()) as GeminiResultsResponse;
-  return data.text;
+  return { 
+    text: data.text, 
+    rankingAnalysis: data.rankingAnalysis,
+    improvementRecommendations: data.improvementRecommendations,
+    keywordPosition: data.keywordPosition,
+    monitoringKeyword: data.monitoringKeyword
+  };
 }
 
 export async function fetchOpenAIResults(
   userQuery: string,
-  monitoringKeyword?: string
-): Promise<string> {
+  monitoringKeyword?: string,
+  pageType?: 'results' | 'select_location'
+): Promise<{ text: string; rankingAnalysis?: RankingAnalysisResponse[]; improvementRecommendations?: ImprovementRecommendation[]; keywordPosition?: number; monitoringKeyword?: string; }> {
   const body: OpenAIResultsRequest = {
     user_query: userQuery,
-    monitoring_keyword: monitoringKeyword,
+    monitoring_keyword: monitoringKeyword || userQuery,
+    page_type: pageType || 'results',
   };
   const resp = await fetch("/api/openai/results", {
     method: "POST",
@@ -174,25 +416,75 @@ export async function fetchOpenAIResults(
   });
   if (!resp.ok) throw new Error(await resp.text());
   const data = (await resp.json()) as OpenAIResultsResponse;
-  return data.text;
+  return { 
+    text: data.text, 
+    rankingAnalysis: data.rankingAnalysis,
+    improvementRecommendations: data.improvementRecommendations,
+    keywordPosition: data.keywordPosition,
+    monitoringKeyword: data.monitoringKeyword
+  };
 }
 
 export async function fetchPerplexityResults(
   userQuery: string,
-  monitoringKeyword?: string
-): Promise<string> {
+  monitoringKeyword?: string,
+  pageType?: 'results' | 'select_location'
+): Promise<{ text: string; rankingAnalysis?: RankingAnalysisResponse[]; improvementRecommendations?: ImprovementRecommendation[]; keywordPosition?: number; monitoringKeyword?: string; }> {
   const body: PerplexityResultsRequest = {
     user_query: userQuery,
-    monitoring_keyword: monitoringKeyword,
+    monitoring_keyword: monitoringKeyword || userQuery,
+    page_type: pageType || 'results',
   };
-  const resp = await fetch("/api/perplexity/results", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!resp.ok) throw new Error(await resp.text());
-  const data = (await resp.json()) as PerplexityResultsResponse;
-  return data.text;
+  
+  try {
+    const resp = await withTimeout(fetch("/api/perplexity/results", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }), 12000); // 12 second timeout for client
+    
+    if (!resp.ok) {
+      const errorText = await resp.text();
+      console.error('Perplexity API error:', resp.status, errorText);
+      
+      // Handle timeout errors gracefully
+      if (resp.status === 408 || resp.status === 504 || errorText.includes('timeout')) {
+        return {
+          text: `I apologize, but I'm currently experiencing high demand and cannot provide a complete response for your query: "${userQuery}". Please try again in a few moments, or consider using one of the other AI providers available.`,
+          rankingAnalysis: [],
+          improvementRecommendations: undefined,
+          keywordPosition: undefined,
+          monitoringKeyword: monitoringKeyword
+        };
+      }
+      
+      throw new Error(errorText);
+    }
+    
+    const data = (await resp.json()) as PerplexityResultsResponse;
+    return { 
+      text: data.text, 
+      rankingAnalysis: data.rankingAnalysis,
+      improvementRecommendations: data.improvementRecommendations,
+      keywordPosition: data.keywordPosition,
+      monitoringKeyword: data.monitoringKeyword
+    };
+  } catch (error) {
+    console.error('Perplexity fetch error:', error);
+    
+    // Return a fallback response for timeout errors
+    if (error instanceof Error && (error.message.includes('timeout') || error.message.includes('504'))) {
+      return {
+        text: `I apologize, but I'm currently experiencing high demand and cannot provide a complete response for your query: "${userQuery}". Please try again in a few moments, or consider using one of the other AI providers available.`,
+        rankingAnalysis: [],
+        improvementRecommendations: undefined,
+        keywordPosition: undefined,
+        monitoringKeyword: monitoringKeyword
+      };
+    }
+    
+    throw error;
+  }
 }
 
 export async function fetchRankingAnalysis(
@@ -221,26 +513,75 @@ export async function fetchRankingAnalysis(
 
 export type ProviderKey = "claude" | "gemini" | "openai" | "perplexity";
 
-export async function fetchProviderResults(provider: ProviderKey, query: string, keyword?: string): Promise<{ text: string; rankingAnalysis?: RankingAnalysisResponse[] }> {
+export async function fetchProviderResults(provider: ProviderKey, query: string, keyword?: string, pageType?: 'results' | 'select_location'): Promise<{ text: string; rankingAnalysis?: RankingAnalysisResponse[]; improvementRecommendations?: ImprovementRecommendation[]; keywordPosition?: number; monitoringKeyword?: string; }> {
   switch (provider) {
     case "claude":
-      return fetchClaudeResults(query, keyword);
+      return fetchClaudeResults(query, keyword, pageType);
     case "gemini":
-      return { text: await fetchGeminiResults(query, keyword), rankingAnalysis: undefined };
+      return fetchGeminiResults(query, keyword, pageType);
     case "openai":
-      return { text: await fetchOpenAIResults(query, keyword), rankingAnalysis: undefined };
+      return fetchOpenAIResults(query, keyword, pageType);
     case "perplexity":
-      return { text: await fetchPerplexityResults(query, keyword), rankingAnalysis: undefined };
+      return fetchPerplexityResults(query, keyword, pageType);
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
 }
 
+// Helper function to add timeout to API calls
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => 
+      setTimeout(() => reject(new Error(`Request timed out after ${timeoutMs}ms`)), timeoutMs)
+    )
+  ]);
+}
+
+// Helper function to retry API calls with exponential backoff
+async function withRetry<T>(
+  fn: () => Promise<T>, 
+  maxRetries: number = 2, 
+  baseDelay: number = 1000
+): Promise<T> {
+  let lastError: Error;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error as Error;
+      
+      // Don't retry on the last attempt
+      if (attempt === maxRetries) {
+        break;
+      }
+      
+      // Only retry on timeout errors
+      if (lastError.message.includes('timeout') || lastError.message.includes('504')) {
+        const delay = baseDelay * Math.pow(2, attempt);
+        console.log(`🔄 Retrying API call in ${delay}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        // Don't retry on other errors
+        break;
+      }
+    }
+  }
+  
+  throw lastError!;
+}
+
 export async function fetchAllProviderItems(
   query: string,
-  keyword?: string
-): Promise<Record<ProviderKey, ParsedResultItem[]>> {
-  const providers: ProviderKey[] = ["claude", "openai", "gemini"]; // Temporarily removed perplexity due to 401 error
+  keyword?: string,
+  pageType?: 'results' | 'select_location'
+): Promise<{
+  providerItems: Record<ProviderKey, ParsedResultItem[]>;
+  improvementRecommendations: Record<ProviderKey, ImprovementRecommendation[] | undefined>;
+  keywordPositions: Record<ProviderKey, number | undefined>;
+}> {
+  const providers: ProviderKey[] = ["claude", "openai", "gemini", "perplexity"];
   
   // Use parallel calls with staggered start times to prevent rate limiting
   const results = await Promise.all(
@@ -251,22 +592,56 @@ export async function fetchAllProviderItems(
       }
       
       try {
-        const result = await fetchProviderResults(p, query, keyword);
+        // Add retry logic with 15-second timeout to each provider call
+        const result = await withRetry(async () => {
+          return await withTimeout(fetchProviderResults(p, query, keyword, pageType), 15000);
+        }, 1, 1000); // 1 retry with 1s base delay
+        
         console.log(`🔍 PROVIDER ${p} RESULT:`, {
           textLength: result.text.length,
-          rankingAnalysis: result.rankingAnalysis
+          rankingAnalysis: result.rankingAnalysis,
+          improvementRecommendations: result.improvementRecommendations,
+          keywordPosition: result.keywordPosition
         });
         const items = parseStrictListResponse(result.text, result.rankingAnalysis);
-        return [p, items] as const;
+        return [p, { items, improvementRecommendations: result.improvementRecommendations, keywordPosition: result.keywordPosition }] as const;
       } catch (err) {
-        console.error(`Failed to fetch from ${p}:`, err);
-        return [p, [] as ParsedResultItem[]] as const;
+        console.error(`Failed to fetch from ${p} after retries:`, err);
+        
+        // Check if it's a timeout, credit/API key issue, or other error
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        if (errorMessage.includes('timed out') || errorMessage.includes('timeout')) {
+          console.warn(`⏰ ${p.toUpperCase()} request timed out after retries`);
+        } else if (errorMessage.includes('credit balance') || errorMessage.includes('API key')) {
+          console.warn(`⚠️ ${p.toUpperCase()} API issue: ${errorMessage}`);
+        } else {
+          console.warn(`❌ ${p.toUpperCase()} error: ${errorMessage}`);
+        }
+        
+        return [p, { items: [] as ParsedResultItem[], improvementRecommendations: undefined, keywordPosition: undefined }] as const;
       }
     })
   );
-  const map: Record<ProviderKey, ParsedResultItem[]> = {
+  
+  const providerItems: Record<ProviderKey, ParsedResultItem[]> = {
     claude: [], openai: [], perplexity: [], gemini: []
   };
-  results.forEach(([p, items]) => { map[p] = items; });
-  return map;
+  const improvementRecommendations: Record<ProviderKey, ImprovementRecommendation[] | undefined> = {
+    claude: undefined, openai: undefined, perplexity: undefined, gemini: undefined
+  };
+  const keywordPositions: Record<ProviderKey, number | undefined> = {
+    claude: undefined, openai: undefined, perplexity: undefined, gemini: undefined
+  };
+  
+  results.forEach(([p, data]) => {
+    providerItems[p] = data.items;
+    improvementRecommendations[p] = data.improvementRecommendations;
+    keywordPositions[p] = data.keywordPosition;
+  });
+  
+  return {
+    providerItems,
+    improvementRecommendations,
+    keywordPositions
+  };
 }

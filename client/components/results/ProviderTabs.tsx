@@ -21,9 +21,27 @@ export default function ProviderTabs({ providerItems, target }: ProviderTabsProp
   // Calculate real rankings from data
   const getRanking = (providerKey: ProviderKey) => {
     const items = providerItems[providerKey] || [];
-    const targetRank = items.findIndex(item => 
-      item.title.toLowerCase().includes(target.toLowerCase())
-    );
+    const targetLower = target.toLowerCase();
+    
+    console.log(`🔍 Provider ${providerKey}:`, {
+      target: target,
+      itemsCount: items.length,
+      itemTitles: items.map(item => item.title)
+    });
+    
+    const targetRank = items.findIndex(item => {
+      const titleLower = item.title.toLowerCase();
+      const websiteLower = (item.website || '').toLowerCase();
+      
+      // Exact match: check if the target appears in title or website
+      return titleLower.includes(targetLower) || websiteLower.includes(targetLower);
+    });
+    
+    console.log(`🎯 Target "${target}" in ${providerKey}:`, {
+      foundAtIndex: targetRank,
+      ranking: targetRank >= 0 ? targetRank + 1 : null
+    });
+    
     return targetRank >= 0 ? targetRank + 1 : null;
   };
 
@@ -38,7 +56,7 @@ export default function ProviderTabs({ providerItems, target }: ProviderTabsProp
     },
     {
       id: 'openai',
-      name: 'Chat GPT',
+      name: 'ChatGPT',
       icon: Sparkles,
       bgColor: 'bg-purple-500',
       borderColor: 'border-b-purple-500',
@@ -87,7 +105,7 @@ export default function ProviderTabs({ providerItems, target }: ProviderTabsProp
               <div className={`${provider.bgColor} text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1`}>
                 {ranking ? (
                   `#${ranking}`
-                ) : providerItems[provider.id as ProviderKey]?.length === 0 ? (
+                ) : providerItems[provider.id as ProviderKey] === undefined ? (
                   <>
                     <Loader2 className="w-3 h-3 animate-spin" />
                     Loading...

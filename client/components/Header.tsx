@@ -1,4 +1,4 @@
-import { Globe, BarChart3, Search, HelpCircle, Bell } from "lucide-react";
+import { Globe, BarChart3, MapPin, Search, HelpCircle, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
 
@@ -6,6 +6,7 @@ export default function Header() {
   const location = useLocation();
   const isResultsPage = location.pathname === "/results";
   const isReportPage = location.pathname === "/report";
+  const isSelectLocationPage = location.pathname === "/select-location";
   const isHomePage = location.pathname === "/";
 
   return (
@@ -32,6 +33,18 @@ export default function Header() {
             >
               <BarChart3 className="w-4 h-4" />
               <span className="text-base font-semibold">Start Analysis</span>
+            </Link>
+
+            <Link
+              to="/select-location"
+              className={`flex items-center gap-2 pb-1 ${
+                isSelectLocationPage
+                  ? "text-geo-blue-500 border-b-2 border-geo-blue-500"
+                  : "text-geo-slate-600 hover:text-geo-slate-900"
+              }`}
+            >
+              <MapPin className="w-4 h-4" />
+              <span className="text-base font-semibold">Select Location</span>
             </Link>
 
             <Link

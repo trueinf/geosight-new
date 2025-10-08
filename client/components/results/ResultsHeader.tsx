@@ -1,22 +1,15 @@
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Search, Target, Clock, RotateCcw, List, Grid3X3, FileText } from "lucide-react";
+import { Search, Target, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type ProviderKey, type ParsedResultItem } from "@/lib/api";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 export default function ResultsHeader({ providerItems }: { providerItems: Record<ProviderKey, ParsedResultItem[]> }) {
   const location = useLocation();
-  const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
   const q = params.get('q') || 'best running shoes for flat feet';
   const target = params.get('target') || 'Nike Air Zoom Pegasus';
 
-  const reanalyze = () => {
-    // Trigger refetch by changing a non-semantic param (cache-bust)
-    params.set('ts', String(Date.now()));
-    navigate(`${location.pathname}?${params.toString()}`);
-  };
 
   const [ranks, setRanks] = useState<Record<ProviderKey, number | null>>({
     claude: null, openai: null, perplexity: null, gemini: null
@@ -24,9 +17,18 @@ export default function ResultsHeader({ providerItems }: { providerItems: Record
   const [analysisTime, setAnalysisTime] = useState<Date>(new Date());
 
   useEffect(() => {
-    const computeRank = (items: { title: string }[]) => {
-      const idx = items.findIndex(i => i.title.toLowerCase().includes(target.toLowerCase()));
-      return idx >= 0 ? idx + 1 : (items.length > 0 ? 1 : null);
+    const computeRank = (items: ParsedResultItem[]) => {
+      const targetLower = target.toLowerCase();
+
+      const idx = items.findIndex(item => {
+        const titleLower = (item.title || '').toLowerCase();
+        const websiteLower = (item.website || '').toLowerCase();
+        
+        // Exact match: check if the target appears in title or website
+        return titleLower.includes(targetLower) || websiteLower.includes(targetLower);
+      });
+
+      return idx >= 0 ? idx + 1 : null; // Do not coerce to rank 1 when not found
     };
     setRanks({
       claude: computeRank(providerItems.claude || []),
@@ -37,7 +39,7 @@ export default function ResultsHeader({ providerItems }: { providerItems: Record
     setAnalysisTime(new Date());
   }, [providerItems, target]);
 
-  // Calculate average rank
+  // Calculate average rank - only from providers where target was found
   const validRanks = Object.values(ranks).filter(rank => rank !== null) as number[];
   const averageRank = validRanks.length > 0 ? 
     (validRanks.reduce((sum, rank) => sum + rank, 0) / validRanks.length).toFixed(2) : 
@@ -79,100 +81,93 @@ export default function ResultsHeader({ providerItems }: { providerItems: Record
             </div>
           </div>
 
-          <Button onClick={reanalyze} variant="secondary" className="h-10 px-5 bg-geo-slate-100 hover:bg-geo-slate-200 text-geo-slate-700 font-bold">
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Re-analyze
-          </Button>
         </div>
       </div>
 
-      {/* Analysis Results Header */}
+      {/* Results Header */}
       <div className="bg-white border-b border-slate-200 shadow-sm">
         <div className="p-4 pb-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <h2 className="text-lg font-bold text-geo-slate-900">Analysis Results</h2>
-              <Badge className="bg-green-100 text-green-700 border-0 h-7 font-bold">
-                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                Completed
+              <h2 className="text-lg font-bold text-geo-slate-900">Results</h2>
+              <Badge className={`border-0 h-7 font-bold ${
+                Object.values(providerItems).some(items => items && items.length > 0) 
+                  ? 'bg-green-100 text-green-700' 
+                  : 'bg-yellow-100 text-yellow-700'
+              }`}>
+                <div className={`w-3 h-3 rounded-full mr-2 ${
+                  Object.values(providerItems).some(items => items && items.length > 0) 
+                    ? 'bg-green-500' 
+                    : 'bg-yellow-500'
+                }`}></div>
+                {Object.values(providerItems).some(items => items && items.length > 0) ? 'Completed' : 'Loading...'}
               </Badge>
             </div>
 
-            <div className="flex items-center gap-4">
-              <Button 
-                onClick={() => navigate(`/report?${params.toString()}`)}
-                className="h-10 px-4 bg-geo-blue-500 hover:bg-geo-blue-600 text-white font-bold"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                View Report
-              </Button>
-              <Button className="h-10 px-4 bg-slate-600 hover:bg-slate-700 text-white font-bold">
-                <List className="w-4 h-4 mr-2" />
-                List View
-              </Button>
-              <Button variant="secondary" className="h-10 px-4 bg-slate-200 hover:bg-slate-300 text-geo-slate-700 font-bold">
-                <Grid3X3 className="w-4 h-4 mr-2" />
-                Comparison View
-              </Button>
-            </div>
           </div>
         </div>
 
         {/* Provider Summary Cards */}
         <div className="px-6 pb-4">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-lg p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-geo-slate-700">Chat GPT</span>
-                <div className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+            <div className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-lg p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-base font-bold text-geo-slate-700">ChatGPT</span>
+                <div className="bg-green-500 text-white text-sm font-bold px-3 py-2 rounded">
                   {ranks.openai ? `#${ranks.openai}` : '--'}
                 </div>
               </div>
-              <div className="text-xs text-geo-slate-600">{ranks.openai ? `${ranks.openai} of ${Math.max(5, ranks.openai)}` : 'Loading...'}</div>
+              <div className="text-sm text-geo-slate-600">{ranks.openai ? `${ranks.openai} of ${Math.max(5, ranks.openai)}` : 'Not available'}</div>
             </div>
 
-            <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-geo-slate-700">Claude</span>
-                <div className="bg-purple-500 text-white text-xs font-bold px-2 py-1 rounded">
+            <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-base font-bold text-geo-slate-700">Claude</span>
+                <div className="bg-purple-500 text-white text-sm font-bold px-3 py-2 rounded">
                   {ranks.claude ? `#${ranks.claude}` : '--'}
                 </div>
               </div>
-              <div className="text-xs text-geo-slate-600">{ranks.claude ? `${ranks.claude} of ${Math.max(5, ranks.claude)}` : 'Loading...'}</div>
+              <div className="text-sm text-geo-slate-600">{ranks.claude ? `${ranks.claude} of ${Math.max(5, ranks.claude)}` : 'Not available'}</div>
             </div>
 
-            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-geo-slate-700">Perplexity</span>
-                <div className="bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">
+            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-base font-bold text-geo-slate-700">Perplexity</span>
+                <div className="bg-blue-500 text-white text-sm font-bold px-3 py-2 rounded">
                   {ranks.perplexity ? `#${ranks.perplexity}` : '--'}
                 </div>
               </div>
-              <div className="text-xs text-geo-slate-600">{ranks.perplexity ? `${ranks.perplexity} of ${Math.max(5, ranks.perplexity)}` : 'Loading...'}</div>
+              <div className="text-sm text-geo-slate-600">{ranks.perplexity ? `${ranks.perplexity} of ${Math.max(5, ranks.perplexity)}` : 'Not available'}</div>
             </div>
 
-            <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-lg p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-geo-slate-700">Gemini</span>
-                <div className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded">
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-lg p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-base font-bold text-geo-slate-700">Gemini</span>
+                <div className="bg-orange-500 text-white text-sm font-bold px-3 py-2 rounded">
                   {ranks.gemini ? `#${ranks.gemini}` : '--'}
                 </div>
               </div>
-              <div className="text-xs text-geo-slate-600">{ranks.gemini ? `${ranks.gemini} of ${Math.max(5, ranks.gemini)}` : 'Loading...'}</div>
+              <div className="text-sm text-geo-slate-600">{ranks.gemini ? `${ranks.gemini} of ${Math.max(5, ranks.gemini)}` : 'Not available'}</div>
             </div>
 
-            <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-300 rounded-lg p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-bold text-geo-slate-700">Average</span>
-                <div className="bg-slate-700 text-white text-xs font-bold px-2 py-1 rounded">
+            <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-300 rounded-lg p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-base font-bold text-geo-slate-700">Average</span>
+                <div className="bg-slate-700 text-white text-sm font-bold px-3 py-2 rounded">
                   #{averageRank}
                 </div>
               </div>
-              <div className="text-xs text-geo-slate-600">
-                {averageRank === '--' ? 'Calculating...' : 
-                 parseFloat(averageRank) <= 2 ? 'Excellent position' :
-                 parseFloat(averageRank) <= 3 ? 'Good position' : 'Needs improvement'}
+              <div className="text-sm text-geo-slate-600">
+                {averageRank === '--' ? 'Not found' : 
+                 parseFloat(averageRank) <= 1.5 ? 'Excellent position' :
+                 parseFloat(averageRank) <= 2.5 ? 'Good position' : 'Needs improvement'}
               </div>
+              {/* Show API status warnings */}
+              {Object.entries(ranks).some(([provider, rank]) => rank === null && (providerItems[provider as ProviderKey]?.length === 0)) && (
+                <div className="mt-2 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                  Some providers unavailable (check API credits)
+                </div>
+              )}
             </div>
           </div>
         </div>

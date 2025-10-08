@@ -85,7 +85,7 @@ export default function ProviderComparisonChart({ data = mockData }: ProviderCom
             <Tooltip content={<CustomTooltip />} />
             <Bar 
               dataKey="position"
-              fill={(entry) => entry.color}
+              fill="#8884d8"
               radius={[4, 4, 0, 0]}
             />
           </BarChart>
