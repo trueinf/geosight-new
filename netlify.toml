@@ -5,7 +5,6 @@
 
 [functions]
   node_bundler = "esbuild"
-  timeout = 10
 
 [[redirects]]
   force = true
