@@ -279,7 +279,7 @@ IMPORTANT: Provide EXACTLY ${expectedItems} items. Keep response concise and fas
 
     // Create multiple timeout layers to prevent 504 errors
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 9000); // 9 second timeout
     
     let response;
     let text = "";
@@ -305,7 +305,7 @@ Please try again in a few moments, or consider using one of the other AI provide
               }
             }]
           });
-        }, 6000); // 6 second fallback
+        }, 7000); // 7 second fallback
       });
       
       const apiPromise = fetch(OPENROUTER_URL, {
