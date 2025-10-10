@@ -40,177 +40,55 @@ export const handlePerplexityResults: RequestHandler = async (req, res) => {
     
     if (isSelectLocationPage) {
       // Hotel location query - 20 results in 4 categories
-      prompt = `Query: "${user_query}"
-
-You MUST respond with EXACTLY this format. Use REAL hotel information. Do NOT use placeholder text like [Actual Hotel Name] or [Brief description]. Use actual hotel names, descriptions, and website URLs.
+      prompt = `List 20 hotels in ${user_query} in 4 categories (5 each). Use real hotel names.
 
 **Best Hotels (5 results):**
-
-1. Title: [Actual Hotel Name]
+1. Title: [Hotel Name]
 Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
+Rating: [X.X/5]
+Price: $[price]
+Website: [website.com]
+IsHilton: [Yes/No]
 
-2. Title: [Actual Hotel Name]
+2. Title: [Hotel Name]
 Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
+Rating: [X.X/5]
+Price: $[price]
+Website: [website.com]
+IsHilton: [Yes/No]
 
-3. Title: [Actual Hotel Name]
+3. Title: [Hotel Name]
 Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
+Rating: [X.X/5]
+Price: $[price]
+Website: [website.com]
+IsHilton: [Yes/No]
 
-4. Title: [Actual Hotel Name]
+4. Title: [Hotel Name]
 Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
+Rating: [X.X/5]
+Price: $[price]
+Website: [website.com]
+IsHilton: [Yes/No]
 
-5. Title: [Actual Hotel Name]
+5. Title: [Hotel Name]
 Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
+Rating: [X.X/5]
+Price: $[price]
+Website: [website.com]
+IsHilton: [Yes/No]
 
 **Best Luxury Hotels (5 results):**
-
-1. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
-
-2. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
-
-3. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
-
-4. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
-
-5. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
+[Same format for 5 luxury hotels]
 
 **Best Business Hotels (5 results):**
-
-1. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
-
-2. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
-
-3. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
-
-4. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
-
-5. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
+[Same format for 5 business hotels]
 
 **Best Family Hotels (5 results):**
+[Same format for 5 family hotels]
 
-1. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
-
-2. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
-
-3. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
-
-4. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
-
-5. Title: [Actual Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5 if available]
-Price: $[price if available]
-Website: [hotel website name only, e.g., "marriott.com" or "hilton.com"]
-IsHilton: [Yes if this is a Hilton hotel, No if not]
-
-CRITICAL HILTON DETECTION RULES:
-- ONLY mark as "Yes" if the hotel name contains: "Hilton"
-- Do NOT mark as "Yes" for: Marriott, Hyatt, Fairmont, Four Seasons, Ritz-Carlton, Westin, Sheraton, InterContinental, Holiday Inn, Best Western, or any other hotel chains
-- If the hotel name does not contain any Hilton brand names, mark as "No"
-
-ABSOLUTE REQUIREMENTS:
-- Your response MUST start with "**Best Hotels (5 results):**"
-- You MUST include all 4 category headers exactly as shown above
-- You MUST provide exactly 5 items under each category
-- Use REAL hotel names, not placeholders
-- Do NOT add any introductory text
-- Do NOT add any concluding text
-- Do NOT deviate from this format
-- CRITICAL: Organize your response into 4 distinct categories with 5 hotels each. Do NOT return a flat list of 20 hotels.
-
-Provide 20 hotels in 4 categories (5 each): Best Hotels, Luxury Hotels, Business Hotels, Family Hotels. Use real names and brief descriptions.
-
-**Best Hotels (5 results):**`;
-          maxTokens = 4000; // Increased for 20 results with detailed descriptions
+Use real hotel names. Mark IsHilton as "Yes" only if hotel name contains "Hilton".`;
+          maxTokens = 2000; // Reduced for faster response
     } else {
       // Generic query - 5 results only
       prompt = `Query: "${user_query}"
@@ -282,7 +160,7 @@ Please try again in a few moments, or consider using one of the other AI provide
               }
             }]
           });
-        }, 20000); // 20 second fallback
+        }, 15000); // 15 second fallback
       });
       
       const apiPromise = fetch(OPENROUTER_URL, {
