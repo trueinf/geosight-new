@@ -67,40 +67,49 @@ Use real names.`;
     const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
     
     // Quick fallback promise
-    const fallbackPromise = new Promise((resolve) => {
+    const fallbackPromise = new Promise<Response>((resolve) => {
       setTimeout(() => {
         console.log('🔍 OpenAI API taking too long, using fallback response');
-        resolve({
+        const fallbackData = {
           choices: [{
             message: {
               content: `I apologize, but I'm currently experiencing high demand and cannot provide a complete response for your query: "${user_query}". Please try again in a few moments, or consider using one of the other AI providers available.`
             }
           }]
-        });
+        };
+        resolve(new Response(JSON.stringify(fallbackData), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        }));
       }, 5000); // 5 second fallback
     });
     
     try {
-        const apiPromise = fetch(OPENAI_URL, {
-          method: "POST",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
+      console.log('🔍 OpenAI API Key length:', process.env.OPENAI_API_KEY?.length);
+      console.log('🔍 OpenAI URL:', OPENAI_URL);
+      console.log('🔍 OpenAI Model: gpt-3.5-turbo');
+      console.log('🔍 OpenAI Max Tokens:', maxTokens);
+      
+      const apiPromise = fetch(OPENAI_URL, {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
           "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-3.5-turbo",
-            messages: [
-              {
-                role: "system",
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [
+            {
+              role: "system",
               content: "You are a helpful assistant that provides concise, accurate information."
-              },
-              {
-                role: "user",
+            },
+            {
+              role: "user",
               content: prompt
             }
-            ],
-            max_tokens: maxTokens,
+          ],
+          max_tokens: maxTokens,
           temperature: 0.7,
         }),
       });
