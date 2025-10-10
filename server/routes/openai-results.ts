@@ -81,41 +81,43 @@ Use real names.`;
           status: 200,
           headers: { 'Content-Type': 'application/json' }
         }));
-      }, 5000); // 5 second fallback
+      }, 7000); // 7 second fallback
     });
     
     try {
       console.log('🔍 OpenAI API Key length:', process.env.OPENAI_API_KEY?.length);
       console.log('🔍 OpenAI URL:', OPENAI_URL);
-      console.log('🔍 OpenAI Model: gpt-3.5-turbo');
+      console.log('🔍 OpenAI Model: gpt-4o-mini');
       console.log('🔍 OpenAI Max Tokens:', maxTokens);
       
       const apiPromise = fetch(OPENAI_URL, {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          "Content-Type": "application/json",
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
           "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-3.5-turbo",
-          messages: [
-            {
-              role: "system",
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              {
+                role: "system",
               content: "You are a helpful assistant that provides concise, accurate information."
-            },
-            {
-              role: "user",
+              },
+              {
+                role: "user",
               content: prompt
             }
-          ],
-          max_tokens: maxTokens,
+            ],
+            max_tokens: maxTokens,
           temperature: 0.7,
-        }),
-      });
+          }),
+        });
 
+      console.log('🔍 Starting Promise.race between API and fallback...');
       const response = await Promise.race([apiPromise, fallbackPromise]);
       clearTimeout(timeoutId);
+      console.log('🔍 Promise.race completed, response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -135,8 +137,8 @@ Use real names.`;
         }
         
         res.status(response.status).json({ error: errorText });
-        return;
-      }
+      return;
+    }
 
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content || "";
