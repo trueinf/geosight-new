@@ -190,29 +190,29 @@ Use real names.`;
         {
           title: "Enhance Online Presence",
           description: `Optimize website content with relevant keywords to improve visibility in search results and attract more online bookings for ${user_query}.`,
-          category: "SEO & Content Strategy",
-          timeframe: "immediate",
+          category: "SEO & Content Strategy" as const,
+          timeframe: "immediate" as const,
           expectedImpact: "Improved search engine ranking and increased website traffic."
         },
         {
           title: "Collaborate with Influential Reviewers",
           description: `Partner with popular industry influencers to showcase the unique offerings and experiences of ${user_query}, increasing brand visibility.`,
-          category: "Authority & Citation Strategy",
-          timeframe: "mid-term",
+          category: "Authority & Citation Strategy" as const,
+          timeframe: "mid-term" as const,
           expectedImpact: "Expanded reach and enhanced credibility among target audience."
         },
         {
           title: "Create Exclusive Brand Programs",
           description: `Develop tailored programs for customers, providing incentives for repeat engagement and fostering brand loyalty for ${user_query}.`,
-          category: "Brand Strategy",
-          timeframe: "long-term",
+          category: "Brand Strategy" as const,
+          timeframe: "long-term" as const,
           expectedImpact: "Increased customer retention and positive brand association."
         },
         {
           title: "Implement Mobile-Friendly Website Design",
           description: `Optimize the website for mobile users to enhance user experience and accessibility, catering to the growing number of users accessing ${user_query} via mobile devices.`,
-          category: "Technical Improvements",
-          timeframe: "immediate",
+          category: "Technical Improvements" as const,
+          timeframe: "immediate" as const,
           expectedImpact: "Higher conversion rates and improved customer satisfaction."
         }
       ] : undefined;
