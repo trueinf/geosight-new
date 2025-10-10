@@ -262,9 +262,9 @@ IMPORTANT: Provide EXACTLY ${expectedItems} items. Keep response concise and fas
     let text = "";
     
     try {
-      console.log('🔍 Making Perplexity API request with model: gpt-4o-mini');
+      console.log('🔍 Making Perplexity API request with model: perplexity/llama-3.1-sonar-small-128k-online');
       console.log('🔍 Request body:', JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "perplexity/llama-3.1-sonar-small-128k-online",
         messages: [{ role: "user", content: prompt.substring(0, 200) + "..." }],
         max_tokens: maxTokens,
       }, null, 2));
@@ -295,7 +295,7 @@ Please try again in a few moments, or consider using one of the other AI provide
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "perplexity/llama-3.1-sonar-small-128k-online",
           messages: [
             {
               role: "system",
@@ -325,7 +325,12 @@ Please try again in a few moments, or consider using one of the other AI provide
       } else if (!response.ok) {
         const errText = await response.text();
         console.error('❌ Perplexity API error:', response.status, errText);
-        res.status(response.status).json({ error: errText });
+        console.error('❌ Response headers:', response.headers);
+        res.status(response.status).json({ 
+          error: errText,
+          status: response.status,
+          statusText: response.statusText
+        });
         return;
       } else {
         const json = (await response.json()) as {
@@ -394,7 +399,7 @@ Please try again in a few moments, or consider using one of the other AI provide
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        console.error('❌ Perplexity request timed out after 5 seconds');
+        console.error('❌ Perplexity request timed out after 25 seconds');
         // Return proper error response instead of fallback data
         res.status(408).json({ 
           error: 'Perplexity API timeout', 
