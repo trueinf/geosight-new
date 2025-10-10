@@ -240,7 +240,7 @@ IMPORTANT:
 
     async function callGemini(url: string) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25000); // Increased to 25 seconds
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
       
       try {
         console.log(`🔍 Making request to: ${url}`);
@@ -271,7 +271,7 @@ IMPORTANT:
       } catch (error: any) {
         clearTimeout(timeoutId);
         if (error.name === 'AbortError') {
-          throw new Error('Gemini request timed out after 25 seconds');
+          throw new Error('Gemini request timed out after 20 seconds');
         }
         throw error;
       }

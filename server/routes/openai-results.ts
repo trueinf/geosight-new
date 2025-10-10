@@ -424,7 +424,7 @@ IMPORTANT:
     // Retry wrapper for OpenAI with timeout
     async function callOpenAI() {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
       
       try {
         const response = await fetch(OPENAI_URL, {
@@ -455,7 +455,7 @@ IMPORTANT:
       } catch (error: any) {
         clearTimeout(timeoutId);
         if (error.name === 'AbortError') {
-          throw new Error('OpenAI request timed out after 25 seconds');
+          throw new Error('OpenAI request timed out after 20 seconds');
         }
         throw error;
       }

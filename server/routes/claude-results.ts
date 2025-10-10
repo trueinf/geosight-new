@@ -334,7 +334,7 @@ Requirements:
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
     
     let response;
     const requestBody = JSON.stringify({
@@ -375,7 +375,7 @@ Requirements:
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        res.status(504).json({ error: 'Claude request timed out after 25 seconds' });
+        res.status(504).json({ error: 'Claude request timed out after 20 seconds' });
         return;
       }
       console.error('🔍 Claude fetch error details:', {

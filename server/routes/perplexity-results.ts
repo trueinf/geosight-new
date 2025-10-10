@@ -134,7 +134,7 @@ IMPORTANT: Provide EXACTLY ${expectedItems} items. Keep response concise and fas
 
     // Create multiple timeout layers to prevent 504 errors
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
     
     let response;
     let text = "";
@@ -277,7 +277,7 @@ Please try again in a few moments, or consider using one of the other AI provide
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        console.error('❌ Perplexity request timed out after 25 seconds');
+        console.error('❌ Perplexity request timed out after 20 seconds');
         // Return proper error response instead of fallback data
         res.status(408).json({ 
           error: 'Perplexity API timeout', 
