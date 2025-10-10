@@ -262,9 +262,9 @@ IMPORTANT: Provide EXACTLY ${expectedItems} items. Keep response concise and fas
     let text = "";
     
     try {
-      console.log('🔍 Making Perplexity API request with model: perplexity/llama-3.1-sonar-small-128k-online');
+      console.log('🔍 Making Perplexity API request with model: gpt-4o-mini');
       console.log('🔍 Request body:', JSON.stringify({
-        model: "perplexity/llama-3.1-sonar-small-128k-online",
+        model: "gpt-4o-mini",
         messages: [{ role: "user", content: prompt.substring(0, 200) + "..." }],
         max_tokens: maxTokens,
       }, null, 2));
@@ -295,7 +295,7 @@ Please try again in a few moments, or consider using one of the other AI provide
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "perplexity/llama-3.1-sonar-small-128k-online",
+          model: "gpt-4o-mini",
           messages: [
             {
               role: "system",
