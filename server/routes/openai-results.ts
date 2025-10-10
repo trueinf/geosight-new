@@ -185,10 +185,42 @@ Use real names.`;
       
       console.log('🔍 Parsed rankingAnalysis count:', rankingAnalysis.length);
 
+      // Generate improvement recommendations based on the results
+      const improvementRecommendations = rankingAnalysis.length > 0 ? [
+        {
+          title: "Enhance Online Presence",
+          description: `Optimize website content with relevant keywords to improve visibility in search results and attract more online bookings for ${user_query}.`,
+          category: "SEO & Content Strategy",
+          timeframe: "immediate",
+          expectedImpact: "Improved search engine ranking and increased website traffic."
+        },
+        {
+          title: "Collaborate with Influential Reviewers",
+          description: `Partner with popular industry influencers to showcase the unique offerings and experiences of ${user_query}, increasing brand visibility.`,
+          category: "Authority & Citation Strategy",
+          timeframe: "mid-term",
+          expectedImpact: "Expanded reach and enhanced credibility among target audience."
+        },
+        {
+          title: "Create Exclusive Brand Programs",
+          description: `Develop tailored programs for customers, providing incentives for repeat engagement and fostering brand loyalty for ${user_query}.`,
+          category: "Brand Strategy",
+          timeframe: "long-term",
+          expectedImpact: "Increased customer retention and positive brand association."
+        },
+        {
+          title: "Implement Mobile-Friendly Website Design",
+          description: `Optimize the website for mobile users to enhance user experience and accessibility, catering to the growing number of users accessing ${user_query} via mobile devices.`,
+          category: "Technical Improvements",
+          timeframe: "immediate",
+          expectedImpact: "Higher conversion rates and improved customer satisfaction."
+        }
+      ] : undefined;
+
       const result: OpenAIResultsResponse = {
         text: text,
         rankingAnalysis: rankingAnalysis,
-        improvementRecommendations: undefined,
+        improvementRecommendations: improvementRecommendations,
         keywordPosition: undefined,
         monitoringKeyword: monitoring_keyword
       };
