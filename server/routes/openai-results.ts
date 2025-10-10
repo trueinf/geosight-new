@@ -142,66 +142,48 @@ Use real names.`;
 
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content || "";
+      
+      console.log('🔍 OpenAI API Response Text:', text.substring(0, 500) + '...');
+      console.log('🔍 OpenAI API Response Length:', text.length);
 
-      // Simple parsing for results
+      // Enhanced parsing for results
       const rankingAnalysis: RankingAnalysisResponse[] = [];
-      const lines = text.split('\n');
-      let currentRank = 0;
-      let currentItem: any = {};
-
-      for (const line of lines) {
-        const trimmedLine = line.trim();
-        
-        if (trimmedLine.startsWith('Title:')) {
-          if (currentItem.title) {
-            rankingAnalysis.push({
-              provider: "openai",
-              target: currentItem.title,
-              rank: currentRank,
-              matched_keywords: [user_query],
-              contextual_signals: ["search relevance"],
-              competitor_presence: [],
-              sentiment: "positive",
-              citation_domains: [currentItem.website || ""],
-              llm_reasoning: `Ranked #${currentRank} in search results for "${user_query}"`
-            });
-          }
-          currentRank++;
-          currentItem = {
-            title: trimmedLine.replace('Title:', '').trim(),
-            description: "",
-            rating: "",
-            price: "",
-            website: "",
-            isHilton: false
-          };
-        } else if (trimmedLine.startsWith('Description:')) {
-          currentItem.description = trimmedLine.replace('Description:', '').trim();
-        } else if (trimmedLine.startsWith('Rating:')) {
-          currentItem.rating = trimmedLine.replace('Rating:', '').trim();
-        } else if (trimmedLine.startsWith('Price:')) {
-          currentItem.price = trimmedLine.replace('Price:', '').trim();
-        } else if (trimmedLine.startsWith('Website:')) {
-          currentItem.website = trimmedLine.replace('Website:', '').trim();
-        } else if (trimmedLine.startsWith('IsHilton:')) {
-          currentItem.isHilton = trimmedLine.replace('IsHilton:', '').trim().toLowerCase() === 'yes';
-        }
-      }
-
-      // Add the last item
-      if (currentItem.title) {
-          rankingAnalysis.push({
-            provider: "openai",
-          target: currentItem.title,
-          rank: currentRank,
-          matched_keywords: [user_query],
-          contextual_signals: ["search relevance"],
+      
+      // Try to extract hotel names from the response using multiple patterns
+      const hotelPatterns = [
+        /Title:\s*([^\n]+)/gi,
+        /(\d+\.\s*Title:\s*[^\n]+)/gi,
+        /(\*\*[^*]+\*\*)/g,
+        /([A-Z][a-z]+\s+(?:Hotel|Inn|Resort|Suites|Plaza|Tower|Palace|Manor|Lodge|House))/g
+      ];
+      
+      let rank = 1;
+      for (const pattern of hotelPatterns) {
+        const matches = text.match(pattern);
+        if (matches && matches.length > 0) {
+          console.log('🔍 Found matches with pattern:', pattern, matches.length);
+          for (const match of matches.slice(0, 20)) { // Limit to 20 results
+            const hotelName = match.replace(/Title:\s*/i, '').replace(/^\d+\.\s*/, '').replace(/\*\*/g, '').trim();
+            if (hotelName && hotelName.length > 3) {
+        rankingAnalysis.push({
+          provider: "openai",
+                target: hotelName,
+          rank: rank,
+                matched_keywords: [user_query],
+                contextual_signals: ["search relevance"],
           competitor_presence: [],
           sentiment: "positive",
-          citation_domains: [currentItem.website || ""],
-          llm_reasoning: `Ranked #${currentRank} in search results for "${user_query}"`
-        });
+                citation_domains: [""],
+                llm_reasoning: `Ranked #${rank} in search results for "${user_query}"`
+              });
+              rank++;
+            }
+          }
+          break; // Use the first pattern that finds matches
+        }
       }
+      
+      console.log('🔍 Parsed rankingAnalysis count:', rankingAnalysis.length);
 
       const result: OpenAIResultsResponse = {
         text: text,
