@@ -210,7 +210,7 @@ ABSOLUTE REQUIREMENTS:
 Provide 20 hotels in 4 categories (5 each): Best Hotels, Luxury Hotels, Business Hotels, Family Hotels. Use real names and brief descriptions.
 
 **Best Hotels (5 results):**`;
-          maxTokens = 200; // Reduced for faster responses
+          maxTokens = 4000; // Increased for 20 results with detailed descriptions
     } else {
       // Generic query - 5 results only
       prompt = `Query: "${user_query}"
@@ -246,7 +246,7 @@ Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only, e.g., "marriott.com" or "hilton.com"]`;
-          maxTokens = 300; // Reduced for faster responses
+          maxTokens = 2000; // Increased for better responses
     }
 
     // Simplified prompt for faster response
@@ -256,7 +256,7 @@ IMPORTANT: Provide EXACTLY ${expectedItems} items. Keep response concise and fas
 
     // Create multiple timeout layers to prevent 504 errors
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
     
     let response;
     let text = "";
@@ -282,7 +282,7 @@ Please try again in a few moments, or consider using one of the other AI provide
               }
             }]
           });
-        }, 4000); // 4 second fallback
+        }, 20000); // 20 second fallback
       });
       
       const apiPromise = fetch(OPENROUTER_URL, {
@@ -480,7 +480,7 @@ Please try again in a few moments, or consider using one of the other AI provide
         
         for (const match of allMatchesAnalysis) {
           const rank = parseInt(match[1]);
-          if (rank > 5) break; // Only process first 5 items
+          if (rank > 20) break; // Process up to 20 items for Select Location page
           
           const content = match[2].trim();
           const titleMatch = content.match(/Title:\s*([^\n]+)/i);
@@ -626,7 +626,7 @@ Please try again in a few moments, or consider using one of the other AI provide
       
       for (const match of allMatchesAnalysis) {
         const rank = parseInt(match[1]);
-        if (rank > 5) break; // Only process first 5 items
+        if (rank > 20) break; // Process up to 20 items for Select Location page
         
         const content = match[2].trim();
         // Handle both "Title:" and "**Title:**" formats
