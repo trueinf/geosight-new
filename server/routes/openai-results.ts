@@ -24,7 +24,7 @@ export const handleOpenAIResults: RequestHandler = async (req, res) => {
     
     if (isSelectLocationPage) {
       // Simple prompt for 20 results
-      prompt = `List 20 hotels in ${user_query} in 4 categories (5 each). Use real hotel names.
+      prompt = `List 20 hotels in ${user_query} in 4 categories (5 each).
 
 **Best Hotels (5 results):**
 1. Title: [Hotel Name]
@@ -34,45 +34,19 @@ Price: $[price]
 Website: [website.com]
 IsHilton: [Yes/No]
 
-2. Title: [Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5]
-Price: $[price]
-Website: [website.com]
-IsHilton: [Yes/No]
-
-3. Title: [Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5]
-Price: $[price]
-Website: [website.com]
-IsHilton: [Yes/No]
-
-4. Title: [Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5]
-Price: $[price]
-Website: [website.com]
-IsHilton: [Yes/No]
-
-5. Title: [Hotel Name]
-Description: [Brief description]
-Rating: [X.X/5]
-Price: $[price]
-Website: [website.com]
-IsHilton: [Yes/No]
+2-5. [Same format]
 
 **Best Luxury Hotels (5 results):**
-[Same format for 5 luxury hotels]
+[Same format]
 
 **Best Business Hotels (5 results):**
-[Same format for 5 business hotels]
+[Same format]
 
 **Best Family Hotels (5 results):**
-[Same format for 5 family hotels]
+[Same format]
 
-Use real hotel names. Mark IsHilton as "Yes" only if hotel name contains "Hilton".`;
-      maxTokens = 1500; // Very low for speed
+Use real hotel names.`;
+      maxTokens = 1000; // Ultra low for speed
     } else {
       // Simple prompt for 5 results
       prompt = `List 5 items for: ${user_query}
@@ -83,61 +57,39 @@ Rating: [X.X/5]
 Price: $[price]
 Website: [website.com]
 
-2. Title: [Item Name]
-Description: [Brief description]
-Rating: [X.X/5]
-Price: $[price]
-Website: [website.com]
+2-5. [Same format]
 
-3. Title: [Item Name]
-Description: [Brief description]
-Rating: [X.X/5]
-Price: $[price]
-Website: [website.com]
-
-4. Title: [Item Name]
-Description: [Brief description]
-Rating: [X.X/5]
-Price: $[price]
-Website: [website.com]
-
-5. Title: [Item Name]
-Description: [Brief description]
-Rating: [X.X/5]
-Price: $[price]
-Website: [website.com]
-
-Use real names and descriptions.`;
-      maxTokens = 800; // Very low for speed
+Use real names.`;
+      maxTokens = 500; // Ultra low for speed
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-    
-    try {
-      const response = await fetch(OPENAI_URL, {
-        method: "POST",
-        signal: controller.signal,
-        headers: {
-          "Content-Type": "application/json",
+      const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      try {
+        const response = await fetch(OPENAI_URL, {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
           "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              {
+                role: "system",
               content: "You are a helpful assistant that provides concise, accurate information."
-            },
-            {
-              role: "user",
+              },
+              {
+                role: "user",
               content: prompt
             }
-          ],
-          max_tokens: maxTokens,
+            ],
+            max_tokens: maxTokens,
           temperature: 0.7,
-        }),
-      });
+          }),
+        });
 
       clearTimeout(timeoutId);
 
@@ -145,8 +97,8 @@ Use real names and descriptions.`;
         const errorText = await response.text();
         console.error('OpenAI API error:', response.status, errorText);
         res.status(response.status).json({ error: errorText });
-        return;
-      }
+      return;
+    }
 
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content || "";
@@ -198,8 +150,8 @@ Use real names and descriptions.`;
 
       // Add the last item
       if (currentItem.title) {
-        rankingAnalysis.push({
-          provider: "openai",
+          rankingAnalysis.push({
+            provider: "openai",
           target: currentItem.title,
           rank: currentRank,
           matched_keywords: [user_query],
@@ -224,7 +176,7 @@ Use real names and descriptions.`;
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        res.status(408).json({ error: 'OpenAI request timed out after 15 seconds' });
+        res.status(408).json({ error: 'OpenAI request timed out after 10 seconds' });
         return;
       }
       console.error('OpenAI fetch error:', error);
