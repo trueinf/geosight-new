@@ -63,11 +63,25 @@ Use real names.`;
       maxTokens = 500; // Ultra low for speed
     }
 
-      const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
-      try {
-        const response = await fetch(OPENAI_URL, {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+    
+    // Quick fallback promise
+    const fallbackPromise = new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('🔍 OpenAI API taking too long, using fallback response');
+        resolve({
+          choices: [{
+            message: {
+              content: `I apologize, but I'm currently experiencing high demand and cannot provide a complete response for your query: "${user_query}". Please try again in a few moments, or consider using one of the other AI providers available.`
+            }
+          }]
+        });
+      }, 5000); // 5 second fallback
+    });
+    
+    try {
+        const apiPromise = fetch(OPENAI_URL, {
           method: "POST",
           signal: controller.signal,
           headers: {
@@ -75,7 +89,7 @@ Use real names.`;
           "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
           },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
+            model: "gpt-3.5-turbo",
             messages: [
               {
                 role: "system",
@@ -88,9 +102,10 @@ Use real names.`;
             ],
             max_tokens: maxTokens,
           temperature: 0.7,
-          }),
-        });
+        }),
+      });
 
+      const response = await Promise.race([apiPromise, fallbackPromise]);
       clearTimeout(timeoutId);
 
       if (!response.ok) {
@@ -176,7 +191,7 @@ Use real names.`;
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        res.status(408).json({ error: 'OpenAI request timed out after 10 seconds' });
+        res.status(408).json({ error: 'OpenAI request timed out after 8 seconds' });
         return;
       }
       console.error('OpenAI fetch error:', error);
