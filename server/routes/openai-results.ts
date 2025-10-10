@@ -111,9 +111,23 @@ Use real names.`;
       if (!response.ok) {
         const errorText = await response.text();
         console.error('OpenAI API error:', response.status, errorText);
+        console.error('OpenAI API response headers:', response.headers);
+        
+        // Handle specific error cases
+        if (response.status === 401) {
+          res.status(401).json({ error: 'OpenAI API key is invalid or expired' });
+          return;
+        } else if (response.status === 429) {
+          res.status(429).json({ error: 'OpenAI API rate limit exceeded' });
+          return;
+        } else if (response.status === 500) {
+          res.status(500).json({ error: 'OpenAI API server error' });
+          return;
+        }
+        
         res.status(response.status).json({ error: errorText });
-      return;
-    }
+        return;
+      }
 
       const data = await response.json();
       const text = data.choices?.[0]?.message?.content || "";

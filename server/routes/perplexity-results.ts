@@ -88,7 +88,7 @@ IsHilton: [Yes/No]
 [Same format for 5 family hotels]
 
 Use real hotel names. Mark IsHilton as "Yes" only if hotel name contains "Hilton".`;
-          maxTokens = 2000; // Reduced for faster response
+          maxTokens = 1000; // Ultra low for speed
     } else {
       // Generic query - 5 results only
       prompt = `Query: "${user_query}"
@@ -124,7 +124,7 @@ Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only, e.g., "marriott.com" or "hilton.com"]`;
-          maxTokens = 2000; // Increased for better responses
+          maxTokens = 800; // Ultra low for speed
     }
 
     // Simplified prompt for faster response
@@ -134,7 +134,7 @@ IMPORTANT: Provide EXACTLY ${expectedItems} items. Keep response concise and fas
 
     // Create multiple timeout layers to prevent 504 errors
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
     
     let response;
     let text = "";
@@ -160,7 +160,7 @@ Please try again in a few moments, or consider using one of the other AI provide
               }
             }]
           });
-        }, 15000); // 15 second fallback
+        }, 5000); // 5 second fallback
       });
       
       const apiPromise = fetch(OPENROUTER_URL, {
@@ -277,7 +277,7 @@ Please try again in a few moments, or consider using one of the other AI provide
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        console.error('❌ Perplexity request timed out after 20 seconds');
+        console.error('❌ Perplexity request timed out after 8 seconds');
         // Return proper error response instead of fallback data
         res.status(408).json({ 
           error: 'Perplexity API timeout', 
