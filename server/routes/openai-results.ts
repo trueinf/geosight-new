@@ -37,9 +37,7 @@ export const handleOpenAIResults: RequestHandler = async (req, res) => {
     
     if (isSelectLocationPage) {
       // Hotel location query - 20 results in 4 categories
-      prompt = `Query: "${user_query}"
-
-You MUST respond with EXACTLY this format. Do not change anything:
+      prompt = `List 20 hotels in ${user_query} in 4 categories (5 each). Use real hotel names.
 
 **Best Hotels (5 results):**
 
@@ -365,7 +363,7 @@ CRITICAL HILTON DETECTION RULES:
 - If the hotel name does not contain any Hilton brand names, mark as "No"
 
 START YOUR RESPONSE NOW WITH: "**Best Hotels (5 results):**"`;
-      maxTokens = 4000; // More tokens for 20 results + JSON
+      maxTokens = 2000; // Reduced for faster response
     } else {
       // Generic query - 5 results only
       prompt = `Query: "${user_query}"
@@ -410,7 +408,7 @@ IMPORTANT:
 - Write detailed descriptions (at least 1-2 sentences)
 - For Website field: Use ONLY the domain name (e.g., "marriott.com", "hilton.com") - NO full URLs or HTML links
 - Use real ratings and prices when known`;
-      maxTokens = isSelectLocationPage ? 4000 : 2000; // More tokens for 20 results
+      maxTokens = isSelectLocationPage ? 2000 : 1000; // Reduced for faster response
     }
 
     // For Select Location page, don't add JSON template - let server parsing handle it
