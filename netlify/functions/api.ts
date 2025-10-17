@@ -1,5 +1,6 @@
 // @ts-ignore - Netlify functions types
 import { Handler } from '@netlify/functions';
+import "dotenv/config";
 import { createServer } from "../../server";
 
 const app = createServer();
@@ -10,6 +11,16 @@ export const handler: Handler = async (event, context) => {
     method: event.httpMethod,
     body: event.body,
     headers: event.headers 
+  });
+
+  // Debug environment variables
+  console.log('🔍 Environment variables check:', {
+    hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+    hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
+    hasGeminiKey: !!process.env.GEMINI_API_KEY,
+    hasOpenRouterKey: !!process.env.OPENROUTER_API_KEY,
+    openAIKeyLength: process.env.OPENAI_API_KEY?.length || 0,
+    openAIKeyPrefix: process.env.OPENAI_API_KEY?.substring(0, 10) || 'MISSING'
   });
 
   // Handle different routes - try multiple path patterns
