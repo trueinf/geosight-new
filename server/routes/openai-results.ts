@@ -267,15 +267,20 @@ Use real names and actual website URLs. Include competitor mentions in descripti
             }
           }
         }
-        // Extract Major Reviews (comma-separated) - tolerate variations and bold
-        else if (
-          trimmedLine.match(/^(Major\s+Reviews?|Reviews)\s*:\s*(.+)/i) ||
-          trimmedLine.match(/^\*\*(Major\s+Reviews?|Reviews):\*\*\s*(.+)/i)
-        ) {
-          const mrMatch = trimmedLine.match(/^(Major\s+Reviews?|Reviews)\s*:\s*(.+)/i) ||
-                          trimmedLine.match(/^\*\*(Major\s+Reviews?|Reviews):\*\*\s*(.+)/i);
-          const value = mrMatch?.[2] || mrMatch?.[1];
-          if (value) {
+        // Extract Major Reviews (comma-separated) - tolerate bullets, bold, dashes/colons, and label variants
+        else {
+          const majorReviewsRegexes = [
+            /^(?:[-*]\s*)?(?:\*\*)?\s*(Major\s+Reviews?|Review\s+Sites?|Reviews)\s*(?:\*\*)?\s*[:\-]\s*(.+)$/i,
+            // Fallback simple pattern without punctuation after label
+            /^(?:[-*]\s*)?(?:\*\*)?\s*(Major\s+Reviews?|Review\s+Sites?|Reviews)\s*(?:\*\*)?\s+(.*)$/i
+          ];
+          let mrMatch: RegExpMatchArray | null = null;
+          for (const rx of majorReviewsRegexes) {
+            const m = trimmedLine.match(rx);
+            if (m && m[2]) { mrMatch = m; break; }
+          }
+          if (mrMatch && mrMatch[2]) {
+            const value = mrMatch[2];
             currentItem.major_reviews = value
               .split(',')
               .map((r: string) => r.replace(/^[\"'\s]+|[\"'\s]+$/g, ''))
