@@ -232,7 +232,7 @@ export default function ResultsList({
                           )}
 
                           {/* Authority */}
-                          {it.rankingAnalysis.citation_domains && it.rankingAnalysis.citation_domains.length > 0 && (
+                          {(it.rankingAnalysis.citation_domains && it.rankingAnalysis.citation_domains.length > 0) || (Array.isArray(it.rankingAnalysis.major_reviews) ? it.rankingAnalysis.major_reviews.length > 0 : !!it.rankingAnalysis.major_reviews) ? (
                             <div className="flex items-start gap-3">
                               <div className="w-5 h-5 bg-white rounded flex items-center justify-center flex-shrink-0 mt-0.5">
                                 <svg className="w-3 h-3 text-slate-800" fill="currentColor" viewBox="0 0 20 20">
@@ -242,11 +242,14 @@ export default function ResultsList({
                               <div>
                                 <div className="font-medium text-sm">Authority:</div>
                                 <div className="text-sm text-gray-300">
-                                  {it.rankingAnalysis.citation_domains.join(' + ')} + major reviews
+                                  {it.rankingAnalysis.citation_domains && it.rankingAnalysis.citation_domains.length > 0 ? it.rankingAnalysis.citation_domains.join(' + ') : ''}
+                                  {Array.isArray(it.rankingAnalysis.major_reviews)
+                                    ? (it.rankingAnalysis.major_reviews.length > 0 && ` + ${it.rankingAnalysis.major_reviews.join(', ')}`)
+                                    : (it.rankingAnalysis.major_reviews && ` + ${it.rankingAnalysis.major_reviews}`)}
                                 </div>
                               </div>
                             </div>
-                          )}
+                          ) : null}
 
                           {/* Context */}
                           {it.rankingAnalysis.contextual_signals && it.rankingAnalysis.contextual_signals.length > 0 && (

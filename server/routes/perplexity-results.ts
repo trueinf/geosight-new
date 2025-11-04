@@ -100,30 +100,35 @@ Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated. Examples: "Yelp, TripAdvisor, Google Reviews, Booking.com, Expedia"]
 
 2. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
 
 3. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
 
 4. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
 
 5. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
-Website: [website name only, e.g., "marriott.com" or "hilton.com"]`;
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]`;
           maxTokens = 800; // Ultra low for speed
     }
 
@@ -379,14 +384,19 @@ Please try again in a few moments, or consider using one of the other AI provide
           const ratingMatch = content.match(/Rating:\s*([^\n]+)/i) || 
                              content.match(/Rating\s*:\s*([^\n]+)/i) ||
                              content.match(/\*\*Rating:\s*([^*]+)\*\*/i);
+          const majorReviewsMatch = content.match(/Major Reviews:\s*([^\n]+)/i) ||
+                                    content.match(/Major Reviews\s*:\s*([^\n]+)/i) ||
+                                    content.match(/\*\*Major Reviews:\s*([^*]+)\*\*/i);
           
           console.log('🔍 Perplexity - Content analysis:', {
             title,
             hasDescription: !!descriptionMatch,
             hasWebsite: !!websiteMatch,
             hasRating: !!ratingMatch,
+            hasMajorReviews: !!majorReviewsMatch,
             descriptionText: descriptionMatch?.[1]?.substring(0, 50),
-            ratingText: ratingMatch?.[1]?.substring(0, 20)
+            ratingText: ratingMatch?.[1]?.substring(0, 20),
+            majorReviewsText: majorReviewsMatch?.[1]?.substring(0, 50)
           });
           
           // Extract meaningful keywords from the user query
@@ -406,6 +416,10 @@ Please try again in a few moments, or consider using one of the other AI provide
           if (ratingMatch && ratingMatch[1] && ratingMatch[1] !== "X.X/5 if available" && ratingMatch[1].trim().length > 0) {
             contextualSignals.push("rating information provided");
             console.log('🔍 Perplexity - Added "rating information provided"');
+          }
+          if (majorReviewsMatch && majorReviewsMatch[1] && majorReviewsMatch[1].trim().length > 0) {
+            contextualSignals.push("major reviews available");
+            console.log('🔍 Perplexity - Added "major reviews available"');
           }
           
           // Generate competitor presence based on other items
@@ -447,6 +461,14 @@ Please try again in a few moments, or consider using one of the other AI provide
             reasoning += ` Available on ${websiteMatch[1].trim()}.`;
           }
           
+          const majorReviews = majorReviewsMatch && majorReviewsMatch[1]
+            ? majorReviewsMatch[1]
+                .split(',')
+                .map(r => r.replace(/^["'\s]+|["'\s]+$/g, ''))
+                .filter(r => r)
+                .slice(0, 10)
+            : undefined;
+          
           rankingAnalysis.push({
             provider: "perplexity",
             target: title,
@@ -456,7 +478,8 @@ Please try again in a few moments, or consider using one of the other AI provide
             competitor_presence: competitorPresence,
             sentiment: "positive",
             citation_domains: citationDomains,
-            llm_reasoning: reasoning
+            llm_reasoning: reasoning,
+            major_reviews: majorReviews
           });
         }
         
@@ -569,6 +592,7 @@ Please try again in a few moments, or consider using one of the other AI provide
           ];
         }
       }
+    
 
     // Debug: Log improvement recommendations status
     console.log('🔍 Final improvement recommendations check:');
@@ -610,6 +634,31 @@ Please try again in a few moments, or consider using one of the other AI provide
         }
       ];
     }
+
+    // Enrich major_reviews from text for items missing it
+    try {
+      const blockMatches = text.matchAll(/(\d+)[\.)]\s*([\s\S]*?)(?=\n\s*\d+[\.)]\s|$)/g);
+      const blocks = Array.from(blockMatches);
+      const maxToProcess = isSelectLocationPage ? 20 : 5;
+      for (const blk of blocks) {
+        const r = parseInt(blk[1]);
+        if (r > maxToProcess) continue;
+        const content = blk[2].trim();
+        const mrMatch = content.match(/Major Reviews:\s*([^\n]+)/i) ||
+                        content.match(/\*\*Major Reviews:\s*([^*]+)\*\*/i);
+        if (mrMatch?.[1]) {
+          const mrArr = mrMatch[1]
+            .split(',')
+            .map(s => s.replace(/^["'\s]+|["'\s]+$/g, ''))
+            .filter(Boolean)
+            .slice(0, 10);
+          const item = rankingAnalysis.find(it => it.rank === r);
+          if (item && (!item as any).major_reviews) {
+            (item as any).major_reviews = mrArr;
+          }
+        }
+      }
+    } catch {}
 
     // Final validation: Ensure proper limits based on page type
     if (isSelectLocationPage) {

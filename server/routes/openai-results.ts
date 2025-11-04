@@ -71,6 +71,7 @@ Description: [Brief description mentioning competitors if relevant]
 Rating: [X.X/5]
 Price: $[price]
 Website: [actual website URL like royalcaribbean.com or carnival.com]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated. Examples: "Yelp, TripAdvisor, Google Reviews, Booking.com, Expedia"]
 
 2-5. [Same format]
 
@@ -168,6 +169,19 @@ Use real names and actual website URLs. Include competitor mentions in descripti
       
       console.log('🔍 Full ChatGPT response text:', text);
       
+      // Helper: sanitize title (strip markdown and leading label)
+      const sanitizeTitle = (raw: string | undefined): string | undefined => {
+        if (!raw) return raw;
+        let t = raw;
+        t = t.replace(/^\*\*Title:\s*/i, '');
+        t = t.replace(/^Title:\s*/i, '');
+        t = t.replace(/^\d+\.[\s]*/i, '');
+        t = t.replace(/^\*\*|\*\*$/g, '');
+        t = t.replace(/\*([^*]+)\*/g, '$1');
+        t = t.trim();
+        return t;
+      };
+      
       // Extract structured data from the response
       const lines = text.split('\n').filter(line => line.trim());
       let currentItem: any = {};
@@ -187,14 +201,15 @@ Use real names and actual website URLs. Include competitor mentions in descripti
             // Save previous item
             rankingAnalysis.push({
               provider: "openai",
-              target: currentItem.title,
+              target: sanitizeTitle(currentItem.title) || currentItem.title,
               rank: rank,
               matched_keywords: [user_query],
               contextual_signals: ["search relevance"],
               competitor_presence: currentItem.competitors || [],
               sentiment: "positive",
               citation_domains: currentItem.websites || [],
-              llm_reasoning: `Ranked #${rank} in search results for "${user_query}"`
+              llm_reasoning: `Ranked #${rank} in search results for "${user_query}"`,
+              major_reviews: currentItem.major_reviews
             });
             rank++;
           }
@@ -202,7 +217,7 @@ Use real names and actual website URLs. Include competitor mentions in descripti
           const titleMatch = trimmedLine.match(/^\d+\.\s*Title:\s*(.+)/i) || 
                            trimmedLine.match(/^Title:\s*(.+)/i) ||
                            trimmedLine.match(/^\d+\.\s*(.+)/i);
-          currentItem = { title: titleMatch?.[1]?.trim() };
+          currentItem = { title: sanitizeTitle(titleMatch?.[1]) };
           console.log('🔍 Found title:', currentItem.title);
         }
         // Extract website - more flexible matching
@@ -252,20 +267,38 @@ Use real names and actual website URLs. Include competitor mentions in descripti
             }
           }
         }
+        // Extract Major Reviews (comma-separated) - tolerate variations and bold
+        else if (
+          trimmedLine.match(/^(Major\s+Reviews?|Reviews)\s*:\s*(.+)/i) ||
+          trimmedLine.match(/^\*\*(Major\s+Reviews?|Reviews):\*\*\s*(.+)/i)
+        ) {
+          const mrMatch = trimmedLine.match(/^(Major\s+Reviews?|Reviews)\s*:\s*(.+)/i) ||
+                          trimmedLine.match(/^\*\*(Major\s+Reviews?|Reviews):\*\*\s*(.+)/i);
+          const value = mrMatch?.[2] || mrMatch?.[1];
+          if (value) {
+            currentItem.major_reviews = value
+              .split(',')
+              .map((r: string) => r.replace(/^[\"'\s]+|[\"'\s]+$/g, ''))
+              .filter((r: string) => r)
+              .slice(0, 10);
+            console.log('🔍 Found major reviews:', currentItem.major_reviews);
+          }
+        }
       }
       
       // Add the last item
       if (currentItem.title) {
         rankingAnalysis.push({
           provider: "openai",
-          target: currentItem.title,
+          target: sanitizeTitle(currentItem.title) || currentItem.title,
           rank: rank,
           matched_keywords: [user_query],
           contextual_signals: ["search relevance"],
           competitor_presence: currentItem.competitors || [],
           sentiment: "positive",
           citation_domains: currentItem.websites || [],
-          llm_reasoning: `Ranked #${rank} in search results for "${user_query}"`
+          llm_reasoning: `Ranked #${rank} in search results for "${user_query}"`,
+          major_reviews: currentItem.major_reviews
         });
       }
       

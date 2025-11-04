@@ -204,30 +204,35 @@ Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated. Examples: "Yelp, TripAdvisor, Google Reviews, Booking.com, Expedia"]
 
 2. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
 
 3. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
 
 4. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
 
 5. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
 
 IMPORTANT: 
 - Replace ALL placeholder text with real information
@@ -417,6 +422,9 @@ Please try again in a few moments, or consider using one of the other AI provide
       const ratingMatch = content.match(/Rating:\s*([^\n]+)/i) || 
                          content.match(/Rating\s*:\s*([^\n]+)/i) ||
                          content.match(/\*\*Rating:\s*([^*]+)\*\*/i);
+      const majorReviewsMatch = content.match(/Major Reviews:\s*([^\n]+)/i) ||
+                                content.match(/Major Reviews\s*:\s*([^\n]+)/i) ||
+                                content.match(/\*\*Major Reviews:\s*([^*]+)\*\*/i);
       
       console.log('🔍 Gemini - Content analysis:', {
         title,
@@ -485,6 +493,14 @@ Please try again in a few moments, or consider using one of the other AI provide
         reasoning += ` Available on ${websiteMatch[1].trim()}.`;
       }
       
+      const majorReviews = majorReviewsMatch && majorReviewsMatch[1]
+        ? majorReviewsMatch[1]
+            .split(',')
+            .map(r => r.replace(/^["'\s]+|["'\s]+$/g, ''))
+            .filter(r => r)
+            .slice(0, 10)
+        : undefined;
+      
       rankingAnalysis.push({
         provider: "gemini",
         target: title,
@@ -494,7 +510,8 @@ Please try again in a few moments, or consider using one of the other AI provide
         competitor_presence: competitorPresence,
         sentiment: "positive",
         citation_domains: citationDomains,
-        llm_reasoning: reasoning
+        llm_reasoning: reasoning,
+        major_reviews: majorReviews
       });
     }
     

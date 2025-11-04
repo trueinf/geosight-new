@@ -84,6 +84,7 @@ export interface RankingAnalysisResponse {
   sentiment: "positive" | "neutral" | "negative";
   citation_domains: string[];
   llm_reasoning: string;
+  major_reviews?: string[];
 }
 
 // Improvement Recommendations API

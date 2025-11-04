@@ -282,36 +282,42 @@ Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated. Examples: "Yelp, TripAdvisor, Google Reviews, Booking.com, Expedia"]
 
 2. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
 
 3. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[price if available]
 Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
 
 4. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
 
 5. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
 Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
 
 Requirements:
 - Provide exactly 5 results
 - Use real product/service names
 - Write brief descriptions
-- Use only domain names for websites (e.g., "marriott.com")`;
+- Use only domain names for websites (e.g., "marriott.com")
+- Include up to 10 major review sites/platforms for each result`;
       maxTokens = 2000; // Standard tokens for 5 results
     }
 
@@ -345,7 +351,7 @@ Requirements:
     
     // Fallback request body with faster model
     const fallbackRequestBody = JSON.stringify({
-      model: "claude-3-5-haiku-20241022", // Faster model
+      model: "", // Faster model
       max_tokens: Math.min(maxTokens, 1500), // Reduced tokens for faster response
       messages: [{ role: "user", content: prompt }],
     });
@@ -589,14 +595,19 @@ Requirements:
               const ratingMatch = content.match(/Rating:\s*([^\n]+)/i) || 
                                  content.match(/Rating\s*:\s*([^\n]+)/i) ||
                                  content.match(/\*\*Rating:\s*([^*]+)\*\*/i);
+              const majorReviewsMatch = content.match(/Major Reviews:\s*([^\n]+)/i) || 
+                                        content.match(/Major Reviews\s*:\s*([^\n]+)/i) ||
+                                        content.match(/\*\*Major Reviews:\s*([^*]+)\*\*/i);
               
               console.log('🔍 Claude - Content analysis:', {
                 title,
                 hasDescription: !!descriptionMatch,
                 hasWebsite: !!websiteMatch,
                 hasRating: !!ratingMatch,
+                hasMajorReviews: !!majorReviewsMatch,
                 descriptionText: descriptionMatch?.[1]?.substring(0, 50),
-                ratingText: ratingMatch?.[1]?.substring(0, 20)
+                ratingText: ratingMatch?.[1]?.substring(0, 20),
+                majorReviewsText: majorReviewsMatch?.[1]?.substring(0, 30)
               });
               
               // Extract meaningful keywords from the user query
@@ -657,6 +668,14 @@ Requirements:
                 reasoning += ` Available on ${websiteMatch[1].trim()}.`;
               }
               
+              const majorReviews = majorReviewsMatch && majorReviewsMatch[1]
+                ? majorReviewsMatch[1]
+                    .split(',')
+                    .map(r => r.replace(/^["'\s]+|["'\s]+$/g, ''))
+                    .filter(r => r && !/Up to 10 major review sites|One major review site\/platform/i.test(r))
+                    .slice(0, 10)
+                : undefined;
+              
               rankingAnalysis.push({
                 provider: "claude",
                 target: title,
@@ -666,7 +685,8 @@ Requirements:
                 competitor_presence: competitorPresence,
                 sentiment: "positive",
                 citation_domains: citationDomains,
-                llm_reasoning: reasoning
+                llm_reasoning: reasoning,
+                major_reviews: majorReviews
               });
             }
           }
@@ -710,14 +730,19 @@ Requirements:
             const ratingMatch = content.match(/Rating:\s*([^\n]+)/i) || 
                                content.match(/Rating\s*:\s*([^\n]+)/i) ||
                                content.match(/\*\*Rating:\s*([^*]+)\*\*/i);
+            const majorReviewsMatch = content.match(/Major Reviews:\s*([^\n]+)/i) || 
+                                      content.match(/Major Reviews\s*:\s*([^\n]+)/i) ||
+                                      content.match(/\*\*Major Reviews:\s*([^*]+)\*\*/i);
             
             console.log('🔍 Claude - Main category content analysis:', {
               title,
               hasDescription: !!descriptionMatch,
               hasWebsite: !!websiteMatch,
               hasRating: !!ratingMatch,
+              hasMajorReviews: !!majorReviewsMatch,
               descriptionText: descriptionMatch?.[1]?.substring(0, 50),
-              ratingText: ratingMatch?.[1]?.substring(0, 20)
+              ratingText: ratingMatch?.[1]?.substring(0, 20),
+              majorReviewsText: majorReviewsMatch?.[1]?.substring(0, 30)
             });
             
             // Extract meaningful keywords from the user query
@@ -779,6 +804,14 @@ Requirements:
               reasoning += ` Available on ${websiteMatch[1].trim()}.`;
             }
             
+            const majorReviews = majorReviewsMatch && majorReviewsMatch[1]
+              ? majorReviewsMatch[1]
+                  .split(',')
+                  .map(r => r.replace(/^["'\s]+|["'\s]+$/g, ''))
+                  .filter(r => r && !/Up to 10 major review sites|One major review site\/platform/i.test(r))
+                  .slice(0, 10)
+              : undefined;
+            
             rankingAnalysis.push({
               provider: "claude",
               target: title,
@@ -788,7 +821,8 @@ Requirements:
               competitor_presence: competitorPresence,
               sentiment: "positive",
               citation_domains: citationDomains,
-              llm_reasoning: reasoning
+              llm_reasoning: reasoning,
+              major_reviews: majorReviews
             });
           }
         }
@@ -890,14 +924,19 @@ Requirements:
         const ratingMatch = content.match(/Rating:\s*([^\n]+)/i) || 
                            content.match(/Rating\s*:\s*([^\n]+)/i) ||
                            content.match(/\*\*Rating:\s*([^*]+)\*\*/i);
+        const majorReviewsMatch = content.match(/Major Reviews:\s*([^\n]+)/i) || 
+                                  content.match(/Major Reviews\s*:\s*([^\n]+)/i) ||
+                                  content.match(/\*\*Major Reviews:\s*([^*]+)\*\*/i);
         
         console.log('🔍 Claude - Fallback content analysis:', {
           title,
           hasDescription: !!descriptionMatch,
           hasWebsite: !!websiteMatch,
           hasRating: !!ratingMatch,
+          hasMajorReviews: !!majorReviewsMatch,
           descriptionText: descriptionMatch?.[1]?.substring(0, 50),
-          ratingText: ratingMatch?.[1]?.substring(0, 20)
+          ratingText: ratingMatch?.[1]?.substring(0, 20),
+          majorReviewsText: majorReviewsMatch?.[1]?.substring(0, 30)
         });
         
         const citationDomains = [];
@@ -954,6 +993,14 @@ Requirements:
           reasoning += ` Solid alternative with competitive offerings.`;
         }
         
+        const majorReviews = majorReviewsMatch && majorReviewsMatch[1]
+          ? majorReviewsMatch[1]
+              .split(',')
+              .map(r => r.replace(/^["'\s]+|["'\s]+$/g, ''))
+              .filter(r => r && !/Up to 10 major review sites|One major review site\/platform/i.test(r))
+              .slice(0, 10)
+          : undefined;
+        
         rankingAnalysis.push({
           provider: "claude",
           target: title,
@@ -963,7 +1010,8 @@ Requirements:
           competitor_presence: competitorPresence,
           sentiment: "positive",
           citation_domains: citationDomains,
-          llm_reasoning: reasoning
+          llm_reasoning: reasoning,
+          major_reviews: majorReviews
         });
       }
       
