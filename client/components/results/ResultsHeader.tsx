@@ -39,10 +39,11 @@ export default function ResultsHeader({ providerItems }: { providerItems: Record
     setAnalysisTime(new Date());
   }, [providerItems, target]);
 
-  // Calculate average rank - only from providers where target was found
+  // Calculate average rank - divide by total providers (4) to account for unavailable ones
   const validRanks = Object.values(ranks).filter(rank => rank !== null) as number[];
+  const totalProviders = 4; // claude, openai, perplexity, gemini
   const averageRank = validRanks.length > 0 ? 
-    (validRanks.reduce((sum, rank) => sum + rank, 0) / validRanks.length).toFixed(2) : 
+    (validRanks.reduce((sum, rank) => sum + rank, 0) / totalProviders).toFixed(2) : 
     '--';
 
   // Calculate time ago
