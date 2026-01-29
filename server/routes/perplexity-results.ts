@@ -1,7 +1,10 @@
 import type { RequestHandler } from "express";
 import type { PerplexityResultsRequest, PerplexityResultsResponse, RankingAnalysisResponse } from "@shared/api";
 
+const PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const PERPLEXITY_MODEL = "sonar";
+const OPENROUTER_MODEL = "openai/gpt-4o-mini";
 
 // Helper function to extract location from user query
 function extractLocationFromQuery(user_query: string): string {
@@ -18,18 +21,17 @@ export const handlePerplexityResults: RequestHandler = async (req, res) => {
       return;
     }
 
-    // Check API key availability
-    if (!process.env.OPENROUTER_API_KEY) {
-      console.error('❌ OPENROUTER_API_KEY is not set in environment variables');
-      res.status(500).json({ 
-        error: "Missing OPENROUTER_API_KEY",
-        message: "Perplexity API key is not configured. Please add OPENROUTER_API_KEY to your environment variables.",
-        details: "Get your API key from https://openrouter.ai/keys"
+    const useNativePerplexity = !!process.env.PERPLEXITY_API_KEY;
+    const useOpenRouter = !!process.env.OPENROUTER_API_KEY;
+    if (!useNativePerplexity && !useOpenRouter) {
+      console.error('❌ Neither PERPLEXITY_API_KEY nor OPENROUTER_API_KEY is set');
+      res.status(500).json({
+        error: "Missing API key",
+        message: "Perplexity provider needs either PERPLEXITY_API_KEY (from https://docs.perplexity.ai) or OPENROUTER_API_KEY (from https://openrouter.ai/keys). Add one to your environment.",
       });
       return;
     }
-    
-    console.log('✅ OPENROUTER_API_KEY is set, length:', process.env.OPENROUTER_API_KEY.length);
+    console.log('✅ Using', useNativePerplexity ? 'native Perplexity API' : 'OpenRouter', useNativePerplexity ? `(key length: ${process.env.PERPLEXITY_API_KEY!.length})` : `(key length: ${process.env.OPENROUTER_API_KEY!.length})`);
 
     // Determine if this is for Select Location page (20 results) or Results page (10 results)
     const isSelectLocationPage = page_type === 'select_location';
@@ -179,81 +181,78 @@ IMPORTANT: Provide EXACTLY ${expectedItems} items. Keep response concise and fas
     let response;
     let text = "";
     
+    const apiUrl = useNativePerplexity ? PERPLEXITY_API_URL : OPENROUTER_URL;
+    const apiKey = useNativePerplexity ? process.env.PERPLEXITY_API_KEY! : process.env.OPENROUTER_API_KEY!;
+    const model = useNativePerplexity ? PERPLEXITY_MODEL : OPENROUTER_MODEL;
+
     try {
-      console.log('🔍 Making Perplexity API request with model: gpt-4o-mini');
-      console.log('🔍 Request body:', JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt.substring(0, 200) + "..." }],
-        max_tokens: maxTokens,
-      }, null, 2));
-      
-      // Create a race between the API call and a quick fallback
+      console.log('🔍 Making request to', useNativePerplexity ? 'Perplexity API' : 'OpenRouter', 'model:', model);
       const quickFallbackPromise = new Promise((resolve) => {
         setTimeout(() => {
-          console.log('🔍 Perplexity API taking too long, using fallback response');
+          console.log('🔍 API taking too long, using fallback response');
           resolve({
             choices: [{
               message: {
-                content: `I apologize, but I'm currently experiencing high demand and cannot provide a complete response for your query: "${user_query}". 
-
-Please try again in a few moments, or consider using one of the other AI providers available. The system is working to resolve this issue.`
+                content: `I apologize, but I'm currently experiencing high demand and cannot provide a complete response for your query: "${user_query}". Please try again in a few moments, or consider using one of the other AI providers available.`
               }
             }]
           });
-        }, 5000); // 5 second fallback
+        }, 5000);
       });
-      
-      const apiPromise = fetch(OPENROUTER_URL, {
+
+      const headers: Record<string, string> = {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      };
+      if (!useNativePerplexity) {
+        headers["HTTP-Referer"] = process.env.SITE_URL || "https://geosight.app";
+        headers["X-Title"] = process.env.SITE_NAME || "GeoSight";
+      }
+
+      const apiPromise = fetch(apiUrl, {
         method: "POST",
         signal: controller.signal,
-        headers: {
-          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          "HTTP-Referer": process.env.SITE_URL || "https://geosight.app",
-          "X-Title": process.env.SITE_NAME || "GeoSight",
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model,
           messages: [
             {
               role: "system",
               content: "You are a helpful assistant that MUST follow the exact format provided. Do not deviate from the specified format. Always include category headers and follow the exact structure shown."
             },
-            {
-              role: "user",
-              content: prompt,
-            },
+            { role: "user", content: prompt },
           ],
           max_tokens: maxTokens,
         }),
       });
-      
+
       response = await Promise.race([apiPromise, quickFallbackPromise]) as Response;
       clearTimeout(timeoutId);
-      
-      console.log('🔍 Perplexity API response status:', response.status, response.statusText);
-      
-      // Handle fallback response (not a real HTTP response)
+
+      console.log('🔍 API response status:', response.status, response.statusText);
+
       if (!response.ok && response.status === undefined) {
-        const json = response as {
-          choices?: Array<{ message?: { content?: string } }>;
-        };
+        const json = response as { choices?: Array<{ message?: { content?: string } }> };
         text = json?.choices?.[0]?.message?.content ?? "";
         console.log('🔍 Using fallback response');
       } else if (!response.ok) {
         const errText = await response.text();
-        console.error('❌ Perplexity API error:', response.status, errText);
-        console.error('❌ Response headers:', response.headers);
-        res.status(response.status).json({ 
+        console.error('❌ API error:', response.status, errText);
+        const is401 = response.status === 401;
+        const hint = is401
+          ? (useNativePerplexity
+            ? "PERPLEXITY_API_KEY may be invalid or expired. Get a new key at https://docs.perplexity.ai and ensure it is set in your environment."
+            : "OPENROUTER_API_KEY may be invalid or expired. Get a new key at https://openrouter.ai/keys and ensure it is set in your environment.")
+          : undefined;
+        res.status(response.status).json({
           error: errText,
           status: response.status,
-          statusText: response.statusText
+          statusText: response.statusText,
+          ...(hint && { hint }),
         });
         return;
       } else {
-        const json = (await response.json()) as {
-          choices?: Array<{ message?: { content?: string } }>;
-        };
+        const json = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
         text = json?.choices?.[0]?.message?.content ?? "";
       }
       

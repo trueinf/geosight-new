@@ -80,7 +80,8 @@ Use real names and actual website URLs. Include competitor mentions in descripti
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+    const OPENAI_TIMEOUT_MS = 45000; // 45 second timeout for 10-result responses
+    const timeoutId = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
     
     // Quick fallback promise
     // const fallbackPromise = new Promise<Response>((resolve) => {
@@ -485,7 +486,7 @@ Use real names and actual website URLs. Include competitor mentions in descripti
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        res.status(408).json({ error: 'OpenAI request timed out after 25 seconds' });
+        res.status(408).json({ error: `OpenAI request timed out after ${OPENAI_TIMEOUT_MS / 1000} seconds` });
         return;
       }
       console.error('OpenAI fetch error:', error);

@@ -103,7 +103,7 @@ export default function ResultsHeader({ providerItems = {} }: { providerItems?: 
                   {ranks.openai ? `#${ranks.openai}` : '--'}
                 </div>
               </div>
-              <div className="text-sm text-geo-slate-600">{ranks.openai ? `${ranks.openai} of ${Math.max(5, ranks.openai)}` : 'Not available'}</div>
+              <div className="text-sm text-geo-slate-600">{ranks.openai ? `${ranks.openai} of ${Math.max(providerItems.openai?.length ?? 0, 5)}` : (providerItems.openai?.length ? 'Not in top results' : 'Not available')}</div>
             </div>
 
             <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-5">
@@ -113,7 +113,7 @@ export default function ResultsHeader({ providerItems = {} }: { providerItems?: 
                   {ranks.claude ? `#${ranks.claude}` : '--'}
                 </div>
               </div>
-              <div className="text-sm text-geo-slate-600">{ranks.claude ? `${ranks.claude} of ${Math.max(5, ranks.claude)}` : 'Not available'}</div>
+              <div className="text-sm text-geo-slate-600">{ranks.claude ? `${ranks.claude} of ${Math.max(providerItems.claude?.length ?? 0, 5)}` : (providerItems.claude?.length ? 'Not in top results' : 'Not available')}</div>
             </div>
 
             <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-5">
@@ -123,7 +123,7 @@ export default function ResultsHeader({ providerItems = {} }: { providerItems?: 
                   {ranks.perplexity ? `#${ranks.perplexity}` : '--'}
                 </div>
               </div>
-              <div className="text-sm text-geo-slate-600">{ranks.perplexity ? `${ranks.perplexity} of ${Math.max(5, ranks.perplexity)}` : 'Not available'}</div>
+              <div className="text-sm text-geo-slate-600">{ranks.perplexity ? `${ranks.perplexity} of ${Math.max(providerItems.perplexity?.length ?? 0, 5)}` : (providerItems.perplexity?.length ? 'Not in top results' : 'Not available')}</div>
             </div>
 
             <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-lg p-5">
@@ -133,7 +133,7 @@ export default function ResultsHeader({ providerItems = {} }: { providerItems?: 
                   {ranks.gemini ? `#${ranks.gemini}` : '--'}
                 </div>
               </div>
-              <div className="text-sm text-geo-slate-600">{ranks.gemini ? `${ranks.gemini} of ${Math.max(5, ranks.gemini)}` : 'Not available'}</div>
+              <div className="text-sm text-geo-slate-600">{ranks.gemini ? `${ranks.gemini} of ${Math.max(providerItems.gemini?.length ?? 0, 5)}` : (providerItems.gemini?.length ? 'Not in top results' : 'Not available')}</div>
             </div>
 
             <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-300 rounded-lg p-5">

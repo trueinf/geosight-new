@@ -19,10 +19,10 @@ The application requires the following API keys to be set as environment variabl
 - **Get from**: https://makersuite.google.com/app/apikey
 - **Usage**: Gemini results
 
-### 4. OpenRouter API Key (for Perplexity)
-- **Variable**: `OPENROUTER_API_KEY`
-- **Get from**: https://openrouter.ai/keys
-- **Usage**: Perplexity results
+### 4. Perplexity provider (use one of these)
+- **Option A – Native Perplexity**: `PERPLEXITY_API_KEY` from https://docs.perplexity.ai (recommended for Perplexity)
+- **Option B – OpenRouter**: `OPENROUTER_API_KEY` from https://openrouter.ai/keys (uses OpenRouter with GPT-4o-mini)
+- **Usage**: Perplexity results; if both are set, the app uses the native Perplexity API
 
 ## Setup Instructions
 
@@ -34,7 +34,9 @@ The application requires the following API keys to be set as environment variabl
 OPENAI_API_KEY=your_openai_api_key_here
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
 GEMINI_API_KEY=your_gemini_api_key_here
-OPENROUTER_API_KEY=your_openrouter_api_key_here
+# Perplexity: set one (native key preferred)
+PERPLEXITY_API_KEY=your_perplexity_api_key_here
+# OPENROUTER_API_KEY=your_openrouter_api_key_here
 
 # Optional: Site configuration
 SITE_URL=https://geosight.app
@@ -44,16 +46,11 @@ PING_MESSAGE=pong
 
 3. Restart the server after adding the environment variables
 
-## Current Issue
+## Perplexity 401 "User not found"
 
-**Perplexity is returning 0 results because `OPENROUTER_API_KEY` is not set.**
+If you see **401 Unauthorized** / "User not found" for the Perplexity provider:
 
-The server logs will show:
-- ❌ OPENROUTER_API_KEY is not set in environment variables
-- This causes the Perplexity API to fail and return 0 results
-
-## Solution
-
-Add the `OPENROUTER_API_KEY` to your `.env` file and restart the server.
+- **Using OpenRouter**: Your `OPENROUTER_API_KEY` may be invalid or expired. Create a new key at https://openrouter.ai/keys and update `.env`.
+- **Using native Perplexity**: Set `PERPLEXITY_API_KEY` from https://docs.perplexity.ai (create an API group and generate a key). The app prefers this over OpenRouter when both are set.
 
 

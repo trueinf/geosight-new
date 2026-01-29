@@ -192,91 +192,20 @@ CRITICAL HILTON DETECTION RULES:
 - If the hotel name does not contain any Hilton brand names, mark as "No"`;
       maxTokens = 5000; // Increased to accommodate better responses
     } else {
-      // Generic query - 10 results only
+      // Generic query - 10 results only (condensed prompt so model has room to output all 10)
       prompt = `Query: "${user_query}"
 
-Provide exactly 10 relevant results with REAL information. Do NOT use placeholder text like [Item Name] or [Brief description]. Use actual names, descriptions, and website URLs.
+List exactly 10 results. Each result MUST use this format (use real names, not placeholders):
 
-Format each result exactly like this:
+1. Title: [Actual name]
+Description: [1-2 sentence description]
+Rating: [X.X/5 or N/A]
+Price: $[price or N/A]
+Website: [domain only, e.g. example.com]
+Major Reviews: [comma-separated review sites]
 
-1. Title: [Actual Product/Service Name]
-Description: [Actual detailed description of the product/service]
-Rating: [X.X/5 if available]
-Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
-Major Reviews: [Up to 10 major review sites/platforms, comma-separated. Examples: "Yelp, TripAdvisor, Google Reviews, Booking.com, Expedia"]
-
-2. Title: [Actual Product/Service Name]
-Description: [Actual detailed description of the product/service]
-Rating: [X.X/5 if available]
-Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
-Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
-
-3. Title: [Actual Product/Service Name]
-Description: [Actual detailed description of the product/service]
-Rating: [X.X/5 if available]
-Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
-Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
-
-4. Title: [Actual Product/Service Name]
-Description: [Actual detailed description of the product/service]
-Rating: [X.X/5 if available]
-Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
-Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
-
-5. Title: [Actual Product/Service Name]
-Description: [Actual detailed description of the product/service]
-Rating: [X.X/5 if available]
-Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
-Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
-
-6. Title: [Actual Product/Service Name]
-Description: [Actual detailed description of the product/service]
-Rating: [X.X/5 if available]
-Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
-Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
-
-7. Title: [Actual Product/Service Name]
-Description: [Actual detailed description of the product/service]
-Rating: [X.X/5 if available]
-Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
-Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
-
-8. Title: [Actual Product/Service Name]
-Description: [Actual detailed description of the product/service]
-Rating: [X.X/5 if available]
-Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
-Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
-
-9. Title: [Actual Product/Service Name]
-Description: [Actual detailed description of the product/service]
-Rating: [X.X/5 if available]
-Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
-Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
-
-10. Title: [Actual Product/Service Name]
-Description: [Actual detailed description of the product/service]
-Rating: [X.X/5 if available]
-Price: $[actual price if available]
-Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
-Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
-
-IMPORTANT: 
-- Replace ALL placeholder text with real information
-- Provide actual product/service names
-- Write detailed descriptions (at least 1-2 sentences)
-- For Website field: Use ONLY the domain name (e.g., "brooksrunning.com", "saucony.com") - NO full URLs or HTML links
-- Use real ratings and prices when known
-- Provide EXACTLY 10 total results.`;
-      maxTokens = 2600; // Increased slightly to accommodate 10 results
+Repeat the same format for results 2, 3, 4, 5, 6, 7, 8, 9, and 10. You MUST output all 10 numbered items (1. through 10.). Do not stop at 5.`;
+      maxTokens = 4000;
     }
 
     async function callGemini(url: string) {
@@ -583,6 +512,67 @@ Please try again in a few moments, or consider using one of the other AI provide
           "expectedImpact": "Higher conversion rates and improved customer satisfaction."
         }
       ];
+    }
+
+    // If Results page and we only got 5 items, request items 6-10 explicitly
+    if (!isSelectLocationPage && rankingAnalysis.length === 5) {
+      const continuationPrompt = `For the query "${user_query}", list ONLY items 6, 7, 8, 9, and 10. Same format:\n\n6. Title: [name]\nDescription: [description]\nRating: [X.X/5]\nPrice: $[price]\nWebsite: [domain]\nMajor Reviews: [sites]\n\n7. Title: ...\n8. Title: ...\n9. Title: ...\n10. Title: ...`;
+      const modelUrls = [
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-001:generateContent",
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+      ];
+      for (const url of modelUrls) {
+        try {
+          const contResp = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY! },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: continuationPrompt }] }],
+              generationConfig: { temperature: 0.3, maxOutputTokens: 2000 },
+            }),
+          });
+          if (!contResp.ok) continue;
+          const contJson = (await contResp.json()) as any;
+          const contText = contJson?.candidates?.[0]?.content?.parts?.[0]?.text as string | undefined;
+          if (!contText?.trim()) continue;
+          const contMatches = Array.from(contText.matchAll(/(\d+)[\.)]\s*([\s\S]*?)(?=\n\s*\d+[\.)]\s|$)/g));
+          const queryWords = user_query.toLowerCase().split(/\s+/).filter(w => w.length > 2 && !['the', 'and', 'or', 'in', 'of', 'for', 'with', 'to'].includes(w));
+          for (const match of contMatches) {
+            const rank = parseInt(match[1]);
+            if (rank < 6 || rank > 10) continue;
+            const content = match[2].trim();
+            const titleMatch = content.match(/Title:\s*([^\n]+)/i);
+            const title = titleMatch?.[1]?.trim() || `Item ${rank}`;
+            const descriptionMatch = content.match(/Description:\s*([^\n]+)/i);
+            const websiteMatch = content.match(/Website:\s*([^\n]+)/i);
+            const ratingMatch = content.match(/Rating:\s*([^\n]+)/i);
+            const majorReviewsMatch = content.match(/Major Reviews:\s*([^\n]+)/i);
+            const citationDomains: string[] = [];
+            if (websiteMatch?.[1]) {
+              let w = websiteMatch[1].trim().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+              if (w && w.length > 0) citationDomains.push(w);
+            }
+            rankingAnalysis.push({
+              provider: "gemini",
+              target: title,
+              rank,
+              matched_keywords: [...queryWords],
+              contextual_signals: ["search relevance", "user query match"],
+              competitor_presence: rankingAnalysis.slice(0, 3).map(c => c.target),
+              sentiment: "positive",
+              citation_domains: citationDomains,
+              llm_reasoning: `Ranked #${rank} in the search results for "${user_query}".`,
+              major_reviews: majorReviewsMatch?.[1]?.split(',').map(r => r.replace(/^["'\s]+|["'\s]+$/g, '').trim()).filter(Boolean).slice(0, 10),
+            });
+          }
+          if (rankingAnalysis.length >= 10) {
+            text = text + "\n\n" + contText;
+            console.log('🔍 Gemini - Continuation added', rankingAnalysis.length - 5, 'items (6-10)');
+            break;
+          }
+        } catch (_) { /* try next model */ }
+      }
+      rankingAnalysis.sort((a, b) => a.rank - b.rank);
     }
 
     // Final validation: Ensure proper limits based on page type

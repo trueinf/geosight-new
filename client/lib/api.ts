@@ -761,7 +761,7 @@ export async function fetchAllProviderItems(
       try {
         // Add retry logic with 30-second timeout to each provider call
         const result = await withRetry(async () => {
-          return await withTimeout(fetchProviderResults(p, query, keyword, pageType), 30000);
+          return await withTimeout(fetchProviderResults(p, query, keyword, pageType), 50000);
         }, 1, 1000); // 1 retry with 1s base delay
         
         console.log(`🔍 PROVIDER ${p} RESULT:`, {
