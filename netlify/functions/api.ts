@@ -167,6 +167,29 @@ export const handler: Handler = async (event, context) => {
     }
   }
 
+  if ((path === '/get-results' || path === '/api/get-results') && event.httpMethod === 'GET') {
+    const { handleGetResults } = await import('../../server/routes/get-results');
+    let statusCode = 200;
+    let responseData: any = null;
+    const req = {
+      body: {},
+      method: event.httpMethod,
+      url: event.path,
+      headers: event.headers,
+      query: event.queryStringParameters || {}
+    } as any;
+    const res = {
+      status: (code: number) => { statusCode = code; return res; },
+      json: (data: any) => { responseData = data; return res; }
+    } as any;
+    await handleGetResults(req, res);
+    return {
+      statusCode,
+      body: responseData != null ? JSON.stringify(responseData) : '{}',
+      headers: { 'Content-Type': 'application/json' }
+    };
+  }
+
   if (path === '/api/perplexity/results' && event.httpMethod === 'POST') {
     console.log('🔍 Perplexity function called with:', { path, body: event.body });
     const { handlePerplexityResults } = await import('../../server/routes/perplexity-results');
