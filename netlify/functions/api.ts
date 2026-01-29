@@ -228,9 +228,80 @@ export const handler: Handler = async (event, context) => {
     }
   }
 
+  if ((path === '/api/store-results' || path === '/store-results') && event.httpMethod === 'POST') {
+    const { handleStoreResults } = await import('../../server/routes/store-results');
+    const { req, res, getResponse } = createReqRes();
+    await handleStoreResults(req, res);
+    const response = getResponse();
+    return {
+      statusCode: response.statusCode,
+      body: JSON.stringify(response.data ?? {}),
+      headers: { 'Content-Type': 'application/json' }
+    };
+  }
+
+  if ((path === '/api/scheduled-searches' || path === '/scheduled-searches') && event.httpMethod === 'POST') {
+    const { handleCreateScheduledSearch } = await import('../../server/routes/scheduled-searches');
+    const { req, res, getResponse } = createReqRes();
+    await handleCreateScheduledSearch(req, res);
+    const response = getResponse();
+    return {
+      statusCode: response.statusCode,
+      body: JSON.stringify(response.data ?? {}),
+      headers: { 'Content-Type': 'application/json' }
+    };
+  }
+
+  if ((path === '/api/scheduled-searches' || path === '/scheduled-searches') && event.httpMethod === 'GET') {
+    const { handleGetScheduledSearches } = await import('../../server/routes/scheduled-searches');
+    let statusCode = 200;
+    let responseData: any = null;
+    const req = {
+      body: {},
+      method: event.httpMethod,
+      url: event.path,
+      headers: event.headers,
+      query: event.queryStringParameters || {}
+    } as any;
+    const res = {
+      status: (code: number) => { statusCode = code; return res; },
+      json: (data: any) => { responseData = data; return res; }
+    } as any;
+    await handleGetScheduledSearches(req, res);
+    return {
+      statusCode,
+      body: responseData != null ? JSON.stringify(responseData) : '{}',
+      headers: { 'Content-Type': 'application/json' }
+    };
+  }
+
+  const scheduledDeleteMatch = path.match(/^\/(?:api\/)?scheduled-searches\/([^/]+)$/);
+  if (scheduledDeleteMatch && event.httpMethod === 'DELETE') {
+    const { handleDeleteScheduledSearch } = await import('../../server/routes/scheduled-searches');
+    let statusCode = 200;
+    let responseData: any = null;
+    const req = {
+      body: {},
+      method: event.httpMethod,
+      url: event.path,
+      headers: event.headers,
+      params: { id: scheduledDeleteMatch[1] }
+    } as any;
+    const res = {
+      status: (code: number) => { statusCode = code; return res; },
+      json: (data: any) => { responseData = data; return res; }
+    } as any;
+    await handleDeleteScheduledSearch(req, res);
+    return {
+      statusCode,
+      body: responseData != null ? JSON.stringify(responseData) : '{}',
+      headers: { 'Content-Type': 'application/json' }
+    };
+  }
+
   // Debug: show what path we received
   console.log('🔍 No route matched for path:', path);
-  console.log('🔍 Available routes: /api/claude/results, /api/openai/results, /api/gemini/results, /api/perplexity/results');
+  console.log('🔍 Available routes: /api/claude/results, /api/openai/results, /api/gemini/results, /api/perplexity/results, /api/store-results, /api/scheduled-searches');
   
   // Default response
   return {
