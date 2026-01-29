@@ -1,22 +1,43 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Search, Target, Rocket } from "lucide-react";
+import { Search, Rocket } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { FormEvent, useRef } from "react";
+import { FormEvent, useRef, useState } from "react";
 
 export default function HeroSection() {
   const navigate = useNavigate();
-  const queryRef = useRef<HTMLInputElement | null>(null);
-  const targetRef = useRef<HTMLInputElement | null>(null);
+  const keywordsRef = useRef<HTMLTextAreaElement | null>(null);
+  const [keywordsError, setKeywordsError] = useState("");
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const q = queryRef.current?.value?.trim() || "";
-    const t = targetRef.current?.value?.trim() || "";
+    const keywords = keywordsRef.current?.value?.trim() || "";
+    
+    if (!keywords) {
+      setKeywordsError("Please enter at least one keyword or phrase");
+      keywordsRef.current?.focus();
+      return;
+    }
+    
+    const keywordList = keywords.split('\n').filter(k => k.trim().length > 0);
+    
+    if (keywordList.length === 0) {
+      setKeywordsError("Please enter at least one keyword or phrase");
+      keywordsRef.current?.focus();
+      return;
+    }
+    
+    if (keywordList.length > 25) {
+      setKeywordsError("Maximum 25 keywords/phrases allowed");
+      keywordsRef.current?.focus();
+      return;
+    }
+    
+    setKeywordsError("");
+    
     const params = new URLSearchParams();
-    if (q) params.set('q', q);
-    if (t) params.set('target', t);
+    params.set('keywords', keywordList.join(','));
     params.set('provider', 'claude');
     navigate(`/results?${params.toString()}`);
   };
@@ -58,91 +79,33 @@ export default function HeroSection() {
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-geo-slate-900 mb-2">Start Your Analysis</h2>
               <p className="text-base text-geo-slate-600">
-                Enter your search query and a distinct target brand/product to compare results
+                Enter up to 25 keywords or phrases (one per line) to analyze search results
               </p>
             </div>
 
             <form className="space-y-6" onSubmit={handleSubmit}>
-              {/* Search Query */}
+              {/* Keywords/Phrases Input */}
               <div className="space-y-2">
-                <Label htmlFor="query" className="text-sm font-semibold text-geo-slate-700">
-                  Search Query
+                <Label htmlFor="keywords" className="text-sm font-semibold text-geo-slate-700">
+                  Keywords / Phrases (up to 25, one per line)
                 </Label>
                 <div className="relative">
-                  <Input
-                    id="query"
-                    placeholder="e.g., best running shoes for flat feet"
-                    className="h-[62px] text-lg rounded-xl border-slate-200 bg-geo-slate-50 pr-12"
+                  <Textarea
+                    id="keywords"
+                    placeholder="e.g., best running shoes for beginners&#10;running shoes for flat feet&#10;affordable running shoes"
+                    className={`min-h-[200px] text-base rounded-xl border-slate-200 bg-geo-slate-50 pr-12 resize-y ${keywordsError ? "border-red-500" : ""}`}
                     required
-                    ref={queryRef}
+                    ref={keywordsRef}
+                    onInput={() => setKeywordsError("")}
                   />
-                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-geo-slate-400" />
+                  <Search className="absolute right-4 top-4 w-4 h-4 text-geo-slate-400" />
                 </div>
-                {/* Query Suggestions */}
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {[
-                    "best wireless earbuds 2024",
-                    "top smartphones under $800", 
-                    "premium coffee machines",
-                    "best gaming laptops",
-                    "running shoes for beginners"
-                  ].map((suggestion, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => {
-                        if (queryRef.current) {
-                          queryRef.current.value = suggestion;
-                        }
-                      }}
-                      className="px-3 py-1 text-xs bg-blue-50 text-blue-700 rounded-full border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-all"
-                    >
-                      #{suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Target Brand/Product */}
-              <div className="space-y-2">
-                <Label htmlFor="target" className="text-sm font-semibold text-geo-slate-700">
-                  Target Brand/Product
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="target"
-                    placeholder="e.g., Nike Air Zoom Pegasus"
-                    className="h-[62px] text-lg rounded-xl border-slate-200 bg-geo-slate-50 pr-12"
-                    required
-                    ref={targetRef}
-                  />
-                  <Target className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-geo-slate-400" />
-                </div>
-                {/* Target Suggestions */}
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {[
-                    "Apple AirPods Pro",
-                    "iPhone 15",
-                    "Nike Air Zoom Pegasus",
-                    "Breville Barista Express",
-                    "ASUS ROG Strix",
-                    "Samsung Galaxy S24",
-                    "MacBook Pro M3"
-                  ].map((suggestion, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => {
-                        if (targetRef.current) {
-                          targetRef.current.value = suggestion;
-                        }
-                      }}
-                      className="px-3 py-1 text-xs bg-orange-50 text-orange-700 rounded-full border border-orange-200 hover:bg-orange-100 hover:border-orange-300 transition-all"
-                    >
-                      #{suggestion}
-                    </button>
-                  ))}
-                </div>
+                {keywordsError && (
+                  <p className="text-sm text-red-600 mt-1">{keywordsError}</p>
+                )}
+                <p className="text-xs text-geo-slate-500 mt-1">
+                  Enter one keyword or phrase per line. Maximum 25 keywords/phrases.
+                </p>
               </div>
 
               {/* Submit Button */}

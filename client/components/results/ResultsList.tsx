@@ -57,18 +57,13 @@ export default function ResultsList({
     return <div className="space-y-4"><div className="bg-white rounded-xl border border-slate-200 p-6">Loading results…</div></div>;
   }
 
-  const paramsForMap = new URLSearchParams(location.search);
-  const activeTarget = (paramsForMap.get('target') || '').toLowerCase();
-
   const handleImproveClick = (item: ParsedResultItem) => {
     setSelectedItem(item);
     setShowImproveModal(true);
   };
 
-  // Find the first target match and its position (will be calculated per category)
-  const firstTargetMatch = (items ?? []).find(item => 
-    activeTarget ? item.title.toLowerCase().includes(activeTarget.toLowerCase()) : false
-  );
+  const params = new URLSearchParams(location.search);
+  const currentProvider = (params.get('provider') || 'claude') as ProviderKey;
 
   console.log('🔍 ResultsList - Total items received:', items?.length);
   console.log('🔍 ResultsList - Items:', items?.map(item => ({ title: item.title, reasoning: item.rankingAnalysis?.llm_reasoning })));
@@ -81,47 +76,17 @@ export default function ResultsList({
           <span className="text-sm text-geo-slate-600">({items?.length || 0} results)</span>
         </div>
         {(items ?? []).map((it, idx) => {
-        // Match ONLY the exact target from start analysis page
-        const isTarget = (() => {
-          if (!activeTarget) return false;
-          
-          const targetLower = activeTarget.toLowerCase();
-          const titleLower = (it.title || '').toLowerCase();
-          const websiteLower = (it.website || '').toLowerCase();
-          
-          // Exact match: check if the target appears in title or website
-          return titleLower.includes(targetLower) || websiteLower.includes(targetLower);
-        })();
-        
-        // Get recommendations for current provider directly from props to avoid state timing issues
         const params = new URLSearchParams(location.search);
         const currentProvider = (params.get('provider') || 'claude') as ProviderKey;
         const providerRecommendations = improvementRecommendations[currentProvider];
-        
-        // Show button for any target match that's not at position #1 within this category
-        const currentPosition = idx + 1;
-        const shouldShowButton = isTarget && currentPosition !== 1;
-        
-        // Debug: Also check if we have recommendations
         const hasRecommendations = providerRecommendations && providerRecommendations.length > 0;
         
-        // Debug logging for button logic
-        if (isTarget) {
-          console.log(`🔍 Button logic for ${it.title}:`, {
-            isTarget,
-            currentPosition,
-            currentProvider,
-            hasRecommendations,
-            recommendationsCount: providerRecommendations?.length || 0,
-            shouldShowButton,
-            allRecommendations: improvementRecommendations
-          });
-        }
-        
+        const currentPosition = idx + 1;
+        const shouldShowButton = currentPosition !== 1 && hasRecommendations;
 
         const result = {
           id: idx + 1,
-          ranking: `#${idx + 1}`, // Use category-specific rank instead of global rank
+          ranking: `#${idx + 1}`,
           rankingBg: idx === 0 ? "from-orange-500 to-orange-600" : idx === 1 ? "from-purple-500 to-purple-600" : "from-slate-600 to-slate-700",
           title: it.title,
           website: it.website || "",
@@ -130,22 +95,14 @@ export default function ResultsList({
           priceRange: it.priceRange || "",
           category: it.category || "",
           categoryColor: "bg-slate-100 text-slate-800",
-          isTarget: isTarget,
           shouldShowImproveButton: shouldShowButton,
         };
 
         return (
         <div 
           key={result.id} 
-          className={`rounded-xl shadow-sm relative ${
-            result.isTarget ? 'bg-blue-50 border-2 border-blue-300' : 'bg-white border border-slate-200'
-          }`}
+          className="rounded-xl shadow-sm relative bg-white border border-slate-200"
         >
-          {result.isTarget && (
-            <div className="absolute -top-3 right-4 bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-              TARGET MATCH
-            </div>
-          )}
           
           <div className="p-6">
             <div className="flex items-start gap-4">
@@ -204,7 +161,7 @@ export default function ResultsList({
             {/* Action buttons */}
             <div className="mt-4 pt-4 border-t border-slate-200">
               <div className="flex items-center justify-between">
-                <details className="group flex-1" key={`${paramsForMap.get('provider')}-${it.rank}-${it.title}`}>
+                <details className="group flex-1" key={`${currentProvider}-${it.rank}-${it.title}`}>
                   <summary className="flex items-center gap-2 text-geo-blue-500 text-sm font-medium hover:text-geo-blue-600 transition-colors cursor-pointer list-none group-open:mb-2">
                     <Lightbulb className="w-[11px] h-[11px] flex-shrink-0" />
                     <span>Why this ranking?</span>
@@ -336,7 +293,7 @@ export default function ResultsList({
                         <div className="text-red-600 text-sm">
                           <p>Item: {it.title}</p>
                           <p>Rank: #{it.rank}</p>
-                          <p>Provider: {paramsForMap.get('provider')}</p>
+                          <p>Provider: {currentProvider}</p>
                           <p>Has rankingAnalysis: {it.rankingAnalysis ? 'Yes' : 'No'}</p>
                           {it.rankingAnalysis && (
                             <div className="mt-2">

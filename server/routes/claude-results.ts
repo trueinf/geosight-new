@@ -97,7 +97,7 @@ export const handleClaudeResults: RequestHandler = async (req, res) => {
       return;
     }
 
-    // Determine if this is for Select Location page (20 results) or Results page (5 results)
+    // Determine if this is for Select Location page (20 results) or Results page (10 results)
     const isSelectLocationPage = page_type === 'select_location';
     console.log('🔍 Claude handler - page_type:', page_type);
     console.log('🔍 Claude handler - isSelectLocationPage:', isSelectLocationPage);
@@ -270,10 +270,10 @@ Requirements:
 - Use only domain names for websites (e.g., "example.com")`;
       maxTokens = 4000; // More tokens for 20 results + JSON
     } else {
-      // Generic query - 5 results only
+      // Generic query - 10 results only
       prompt = `Query: "${user_query}"
 
-Provide exactly 5 relevant results with real information. Use actual names, descriptions, and website URLs.
+Provide exactly 10 relevant results with real information. Use actual names, descriptions, and website URLs.
 
 Format each result exactly like this:
 
@@ -312,13 +312,48 @@ Price: $[actual price if available]
 Website: [website name only, e.g., "marriott.com" or "hilton.com"]
 Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
 
+6. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
+7. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
+8. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
+9. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
+10. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
 Requirements:
-- Provide exactly 5 results
+- Provide exactly 10 results
 - Use real product/service names
-- Write brief descriptions
+- Write detailed descriptions
 - Use only domain names for websites (e.g., "marriott.com")
 - Include up to 10 major review sites/platforms for each result`;
-      maxTokens = 2000; // Standard tokens for 5 results
+      maxTokens = 2600; // Standard tokens for 10 results
     }
 
     // For Select Location page, don't add JSON template - let server parsing handle it
@@ -326,7 +361,7 @@ Requirements:
     if (isSelectLocationPage) {
       prompt += `\n\nIMPORTANT: Provide EXACTLY 20 items across all 4 categories. Do not skip any items.`;
     } else {
-      prompt += `\n\nIMPORTANT: Provide EXACTLY 5 results. Do not skip any items.`;
+      prompt += `\n\nIMPORTANT: Provide EXACTLY 10 results. Do not skip any items.`;
     }
 
     console.log('🔍 Claude - Final prompt length:', prompt.length);
@@ -567,16 +602,16 @@ Requirements:
           console.log('🔍 Claude - Using category parsing for SelectLocation page to ensure all 20 items');
           rankingAnalysis = []; // Clear existing ranking analysis
         } else if (!isSelectLocationPage) {
-          console.log('🔍 Claude - Results page: Using simple parsing for first 5 items only');
-          // For Results page, only process the first 5 items from the first category
+          console.log('🔍 Claude - Results page: Using simple parsing for first 10 items only');
+          // For Results page, only process the first 10 items from the first category
           if (categories.length > 0) {
             const firstCategory = categories[0];
             const categoryContent = firstCategory[0];
             const categoryItemMatches = categoryContent.matchAll(/(\d+)[\.)]\s*([\s\S]*?)(?=\n\s*\d+[\.)]\s|$)/g);
             const categoryItems = Array.from(categoryItemMatches);
             
-            // Only process first 5 items from first category
-            for (let i = 0; i < Math.min(5, categoryItems.length); i++) {
+            // Only process first 10 items from first category
+            for (let i = 0; i < Math.min(10, categoryItems.length); i++) {
               const itemMatch = categoryItems[i];
               const rank = parseInt(itemMatch[1]);
               const content = itemMatch[2].trim();
@@ -839,12 +874,12 @@ Requirements:
             console.log('🔍 Claude - Warning: Only', rankingAnalysis.length, 'results found for Select Location page (expected 20)');
           }
         } else {
-          // Results page - ensure exactly 5 results
-          if (rankingAnalysis.length > 5) {
-            console.log('🔍 Claude - Limiting ranking analysis to 5 results for Results page (was', rankingAnalysis.length, ')');
-            rankingAnalysis = rankingAnalysis.slice(0, 5);
-          } else if (rankingAnalysis.length < 5) {
-            console.log('🔍 Claude - Warning: Only', rankingAnalysis.length, 'results found for Results page (expected 5)');
+          // Results page - ensure exactly 10 results
+          if (rankingAnalysis.length > 10) {
+            console.log('🔍 Claude - Limiting ranking analysis to 10 results for Results page (was', rankingAnalysis.length, ')');
+            rankingAnalysis = rankingAnalysis.slice(0, 10);
+          } else if (rankingAnalysis.length < 10) {
+            console.log('🔍 Claude - Warning: Only', rankingAnalysis.length, 'results found for Results page (expected 10)');
           }
         }
         
@@ -904,7 +939,8 @@ Requirements:
       
       for (const match of allMatchesAnalysis) {
         const rank = parseInt(match[1]);
-        if (rank > 5) break; // Only process first 5 items
+        const maxItems = isSelectLocationPage ? 20 : 10;
+        if (rank > maxItems) break; // Process up to maxItems (20 for Select Location, 10 for Results)
         
         const content = match[2].trim();
         // Handle both "Title:" and "**Title:**" formats
@@ -1064,10 +1100,12 @@ Requirements:
     console.log('🔍 rankingAnalysis ranks:', rankingAnalysis.map(item => item.rank));
     
     // Log ranking analysis status (but don't create missing ranks)
-    if (rankingAnalysis.length < 5) {
-      console.log('ℹ️ Claude provided', rankingAnalysis.length, 'ranking analysis items');
-    } else {
-      console.log('✅ Claude provided all 5 ranking analysis items');
+    if (!isSelectLocationPage) {
+      if (rankingAnalysis.length < 10) {
+        console.log('ℹ️ Claude provided', rankingAnalysis.length, 'ranking analysis items for Results page (expected 10)');
+      } else {
+        console.log('✅ Claude provided all 10 ranking analysis items for Results page');
+      }
     }
     
     console.log('🔍 Claude - Final ranking analysis count:', rankingAnalysis.length);

@@ -21,7 +21,7 @@ export const handleGeminiResults: RequestHandler = async (req, res) => {
       return;
     }
 
-    // Determine if this is for Select Location page (20 results) or Results page (5 results)
+    // Determine if this is for Select Location page (20 results) or Results page (10 results)
     const isSelectLocationPage = page_type === 'select_location';
     
     let prompt: string;
@@ -192,10 +192,10 @@ CRITICAL HILTON DETECTION RULES:
 - If the hotel name does not contain any Hilton brand names, mark as "No"`;
       maxTokens = 5000; // Increased to accommodate better responses
     } else {
-      // Generic query - 5 results only
+      // Generic query - 10 results only
       prompt = `Query: "${user_query}"
 
-Provide exactly 5 relevant results with REAL information. Do NOT use placeholder text like [Item Name] or [Brief description]. Use actual names, descriptions, and website URLs.
+Provide exactly 10 relevant results with REAL information. Do NOT use placeholder text like [Item Name] or [Brief description]. Use actual names, descriptions, and website URLs.
 
 Format each result exactly like this:
 
@@ -234,13 +234,49 @@ Price: $[actual price if available]
 Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
 Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
 
+6. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
+7. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
+8. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
+9. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
+10. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "brooksrunning.com" or "saucony.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
 IMPORTANT: 
 - Replace ALL placeholder text with real information
 - Provide actual product/service names
 - Write detailed descriptions (at least 1-2 sentences)
 - For Website field: Use ONLY the domain name (e.g., "brooksrunning.com", "saucony.com") - NO full URLs or HTML links
-- Use real ratings and prices when known`;
-      maxTokens = 2000; // Increased slightly to accommodate better responses
+- Use real ratings and prices when known
+- Provide EXACTLY 10 total results.`;
+      maxTokens = 2600; // Increased slightly to accommodate 10 results
     }
 
     async function callGemini(url: string) {
@@ -406,7 +442,7 @@ Please try again in a few moments, or consider using one of the other AI provide
     
     for (const match of allMatchesAnalysis) {
       const rank = parseInt(match[1]);
-      if (rank > 5) break; // Only process first 5 items
+      if (rank > 10 && !isSelectLocationPage) break; // Only process first 10 items for Results page
       
       const content = match[2].trim();
       const titleMatch = content.match(/Title:\s*([^\n]+)/i);
@@ -553,9 +589,9 @@ Please try again in a few moments, or consider using one of the other AI provide
     if (isSelectLocationPage && rankingAnalysis.length > 20) {
       console.log('🔍 Gemini - Limiting ranking analysis to 20 results for Select Location page');
       rankingAnalysis = rankingAnalysis.slice(0, 20);
-    } else if (!isSelectLocationPage && rankingAnalysis.length > 5) {
-      console.log('🔍 Gemini - Limiting ranking analysis to 5 results for Results page');
-      rankingAnalysis = rankingAnalysis.slice(0, 5);
+    } else if (!isSelectLocationPage && rankingAnalysis.length > 10) {
+      console.log('🔍 Gemini - Limiting ranking analysis to 10 results for Results page');
+      rankingAnalysis = rankingAnalysis.slice(0, 10);
     }
 
     console.log('🔍 Gemini - Final ranking analysis count:', rankingAnalysis.length);

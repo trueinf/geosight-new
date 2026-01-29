@@ -95,3 +95,6 @@ export interface ImprovementRecommendation {
   timeframe: "immediate" | "mid-term" | "long-term";
   expectedImpact: string;
 }
+
+// Provider Types
+export type ProviderKey = "claude" | "gemini" | "openai" | "perplexity";

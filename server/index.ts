@@ -5,6 +5,10 @@ import { handleClaudeResults } from "./routes/claude-results";
 import { handleGeminiResults } from "./routes/gemini-results";
 import { handleOpenAIResults } from "./routes/openai-results";
 import { handlePerplexityResults } from "./routes/perplexity-results";
+import { handleStoreResults, handleGetBrandRankings, handleStoreBrandRanking } from "./routes/store-results";
+import { handleCreateScheduledSearch, handleGetScheduledSearches, handleDeleteScheduledSearch } from "./routes/scheduled-searches";
+import { handleGetResults } from "./routes/get-results";
+import { startScheduler } from "./scheduler";
 
 export function createServer() {
   const app = express();
@@ -66,6 +70,24 @@ export function createServer() {
   app.post("/api/openai/results", handleOpenAIResults);
   // Perplexity results endpoint
   app.post("/api/perplexity/results", handlePerplexityResults);
+
+  // Database endpoints
+  app.post("/api/store-results", handleStoreResults);
+  app.get("/api/get-results", handleGetResults);
+  app.get("/api/brand-rankings", handleGetBrandRankings);
+  app.post("/api/store-brand-ranking", handleStoreBrandRanking);
+
+  // Scheduled searches endpoints
+  app.post("/api/scheduled-searches", handleCreateScheduledSearch);
+  app.get("/api/scheduled-searches", handleGetScheduledSearches);
+  app.delete("/api/scheduled-searches/:id", handleDeleteScheduledSearch);
+
+  // Start scheduler
+  try {
+    startScheduler();
+  } catch (error) {
+    console.error("Failed to start scheduler:", error);
+  }
 
   return app;
 }

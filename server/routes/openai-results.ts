@@ -63,20 +63,20 @@ IsHilton: [Yes/No]
 Use real hotel names.`;
       maxTokens = 1000; // Ultra low for speed
     } else {
-      // Simple prompt for 5 results
-      prompt = `List 5 items for: ${user_query}
+      // Simple prompt for 10 results
+      prompt = `List 10 items for: ${user_query}
 
 1. Title: [Item Name]
-Description: [Brief description mentioning competitors if relevant]
+Description: [Detailed description mentioning competitors if relevant]
 Rating: [X.X/5]
 Price: $[price]
 Website: [actual website URL like royalcaribbean.com or carnival.com]
 Major Reviews: [Up to 10 major review sites/platforms, comma-separated. Examples: "Yelp, TripAdvisor, Google Reviews, Booking.com, Expedia"]
 
-2-5. [Same format]
+2-10. [Same format]
 
 Use real names and actual website URLs. Include competitor mentions in descriptions when relevant.`;
-      maxTokens = 800; // Increased for better data
+      maxTokens = 1400; // Increased for 10 items with richer data
     }
 
     const controller = new AbortController();

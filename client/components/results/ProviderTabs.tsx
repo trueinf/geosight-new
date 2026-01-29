@@ -18,31 +18,10 @@ export default function ProviderTabs({ providerItems, target }: ProviderTabsProp
     navigate(`${location.pathname}?${params.toString()}`);
   };
 
-  // Calculate real rankings from data
+  // Calculate rankings - just show item count since we don't track specific brands anymore
   const getRanking = (providerKey: ProviderKey) => {
     const items = providerItems[providerKey] || [];
-    const targetLower = target.toLowerCase();
-    
-    console.log(`🔍 Provider ${providerKey}:`, {
-      target: target,
-      itemsCount: items.length,
-      itemTitles: items.map(item => item.title)
-    });
-    
-    const targetRank = items.findIndex(item => {
-      const titleLower = item.title.toLowerCase();
-      const websiteLower = (item.website || '').toLowerCase();
-      
-      // Exact match: check if the target appears in title or website
-      return titleLower.includes(targetLower) || websiteLower.includes(targetLower);
-    });
-    
-    console.log(`🎯 Target "${target}" in ${providerKey}:`, {
-      foundAtIndex: targetRank,
-      ranking: targetRank >= 0 ? targetRank + 1 : null
-    });
-    
-    return targetRank >= 0 ? targetRank + 1 : null;
+    return items.length > 0 ? items.length : null;
   };
 
   const providers = [
@@ -104,14 +83,14 @@ export default function ProviderTabs({ providerItems, target }: ProviderTabsProp
               <span className="text-base">{provider.name}</span>
               <div className={`${provider.bgColor} text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1`}>
                 {ranking ? (
-                  `#${ranking}`
+                  `${ranking} results`
                 ) : providerItems[provider.id as ProviderKey] === undefined ? (
                   <>
                     <Loader2 className="w-3 h-3 animate-spin" />
                     Loading...
                   </>
                 ) : (
-                  '--'
+                  'No results'
                 )}
               </div>
             </button>

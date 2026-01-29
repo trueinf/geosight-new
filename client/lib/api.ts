@@ -21,7 +21,7 @@ export interface ParsedResultItem {
   citations?: string[]; // source domains/citations
 }
 
-export function parseStrictListResponse(text: string, rankingAnalysis?: RankingAnalysisResponse[], maxItems: number = 5): ParsedResultItem[] {
+export function parseStrictListResponse(text: string, rankingAnalysis?: RankingAnalysisResponse[], maxItems: number = 10): ParsedResultItem[] {
   console.log('🔍 PARSE FUNCTION CALLED:');
   console.log('🔍 TEXT LENGTH:', text?.length || 0);
   console.log('🔍 TEXT IS EMPTY:', !text || text.trim().length === 0);

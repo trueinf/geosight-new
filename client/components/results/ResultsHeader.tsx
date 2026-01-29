@@ -1,50 +1,27 @@
 import { Badge } from "@/components/ui/badge";
-import { Search, Target, Clock } from "lucide-react";
+import { Search, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type ProviderKey, type ParsedResultItem } from "@/lib/api";
 import { useLocation } from "react-router-dom";
 
-export default function ResultsHeader({ providerItems }: { providerItems: Record<ProviderKey, ParsedResultItem[]> }) {
+export default function ResultsHeader({ providerItems = {} }: { providerItems?: Record<ProviderKey, ParsedResultItem[]> }) {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
-  const q = params.get('q') || 'best running shoes for flat feet';
-  const target = params.get('target') || 'Nike Air Zoom Pegasus';
+  const keywords = params.get('keywords') || '';
+  const keywordList = keywords ? keywords.split(',').filter(k => k.trim()) : [];
 
-
-  const [ranks, setRanks] = useState<Record<ProviderKey, number | null>>({
-    claude: null, openai: null, perplexity: null, gemini: null
-  });
   const [analysisTime, setAnalysisTime] = useState<Date>(new Date());
 
   useEffect(() => {
-    const computeRank = (items: ParsedResultItem[]) => {
-      const targetLower = target.toLowerCase();
-
-      const idx = items.findIndex(item => {
-        const titleLower = (item.title || '').toLowerCase();
-        const websiteLower = (item.website || '').toLowerCase();
-        
-        // Exact match: check if the target appears in title or website
-        return titleLower.includes(targetLower) || websiteLower.includes(targetLower);
-      });
-
-      return idx >= 0 ? idx + 1 : null; // Do not coerce to rank 1 when not found
-    };
-    setRanks({
-      claude: computeRank(providerItems.claude || []),
-      openai: computeRank(providerItems.openai || []),
-      perplexity: computeRank(providerItems.perplexity || []),
-      gemini: computeRank(providerItems.gemini || []),
-    });
     setAnalysisTime(new Date());
-  }, [providerItems, target]);
+  }, [providerItems]);
 
-  // Calculate average rank - divide by total providers (4) to account for unavailable ones
-  const validRanks = Object.values(ranks).filter(rank => rank !== null) as number[];
-  const totalProviders = 4; // claude, openai, perplexity, gemini
-  const averageRank = validRanks.length > 0 ? 
-    (validRanks.reduce((sum, rank) => sum + rank, 0) / totalProviders).toFixed(2) : 
-    '--';
+  const [ranks] = useState<Record<ProviderKey, number | null>>({
+    claude: null, openai: null, perplexity: null, gemini: null
+  });
+  
+  const totalProviders = 4;
+  const averageRank = '--';
 
   // Calculate time ago
   const getTimeAgo = (date: Date) => {
@@ -66,15 +43,23 @@ export default function ResultsHeader({ providerItems }: { providerItems: Record
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <Search className="w-5 h-5 text-geo-blue-500" />
-              <h1 className="text-xl font-bold text-geo-slate-900">"{q}"</h1>
+              <div>
+                <h1 className="text-xl font-bold text-geo-slate-900 mb-2">Keywords Analysis</h1>
+                <div className="flex flex-wrap gap-2">
+                  {keywordList.length > 0 ? (
+                    keywordList.map((keyword, idx) => (
+                      <span key={idx} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm border border-blue-200">
+                        {keyword.trim()}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-geo-slate-500">No keywords specified</span>
+                  )}
+                </div>
+              </div>
             </div>
             
             <div className="flex items-center gap-6 text-sm text-geo-slate-600">
-              <div className="flex items-center gap-2">
-                <Target className="w-[14px] h-[14px] text-amber-500" />
-                <span><span className="text-geo-slate-600">Target:</span> <span className="font-bold text-geo-slate-900">{target}</span></span>
-              </div>
-              
               <div className="flex items-center gap-2">
                 <Clock className="w-[14px] h-[14px] text-geo-slate-400" />
                 <span>Analyzed {getTimeAgo(analysisTime)}</span>

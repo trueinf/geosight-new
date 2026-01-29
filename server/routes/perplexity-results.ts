@@ -31,9 +31,9 @@ export const handlePerplexityResults: RequestHandler = async (req, res) => {
     
     console.log('✅ OPENROUTER_API_KEY is set, length:', process.env.OPENROUTER_API_KEY.length);
 
-    // Determine if this is for Select Location page (20 results) or Results page (5 results)
+    // Determine if this is for Select Location page (20 results) or Results page (10 results)
     const isSelectLocationPage = page_type === 'select_location';
-    const expectedItems = isSelectLocationPage ? 20 : 5;
+    const expectedItems = isSelectLocationPage ? 20 : 10;
     
     let prompt: string;
     let maxTokens: number;
@@ -90,10 +90,10 @@ IsHilton: [Yes/No]
 Use real hotel names. Mark IsHilton as "Yes" only if hotel name contains "Hilton".`;
           maxTokens = 1000; // Ultra low for speed
     } else {
-      // Generic query - 5 results only
+      // Generic query - 10 results only
       prompt = `Query: "${user_query}"
 
-Provide 5 results with real names and brief descriptions.
+Provide 10 results with real names and brief descriptions.
 
 1. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
@@ -124,6 +124,41 @@ Website: [website name only, e.g., "marriott.com" or "hilton.com"]
 Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
 
 5. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
+6. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
+7. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
+8. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
+9. Title: [Actual Product/Service Name]
+Description: [Actual detailed description of the product/service]
+Rating: [X.X/5 if available]
+Price: $[actual price if available]
+Website: [website name only, e.g., "marriott.com" or "hilton.com"]
+Major Reviews: [Up to 10 major review sites/platforms, comma-separated]
+
+10. Title: [Actual Product/Service Name]
 Description: [Actual detailed description of the product/service]
 Rating: [X.X/5 if available]
 Price: $[actual price if available]
@@ -231,7 +266,7 @@ Please try again in a few moments, or consider using one of the other AI provide
         const fallbackRankingAnalysis: RankingAnalysisResponse[] = [];
         const queryWords = user_query.toLowerCase().split(' ').filter(word => word.length > 2);
         
-        for (let i = 1; i <= 5; i++) {
+        for (let i = 1; i <= 10; i++) {
           let targetName = '';
           if (user_query.toLowerCase().includes('cruise')) {
             const cruiseLines = ['Royal Caribbean', 'Carnival Cruise Line', 'Norwegian Cruise Line', 'Princess Cruises', 'Disney Cruise Line'];
@@ -368,7 +403,7 @@ Please try again in a few moments, or consider using one of the other AI provide
         
         for (const match of allMatchesAnalysis) {
           const rank = parseInt(match[1]);
-          if (rank > 20) break; // Process up to 20 items for Select Location page
+          if (rank > expectedItems) break; // Process up to expectedItems (20 for Select Location, 10 for Results)
           
           const content = match[2].trim();
           const titleMatch = content.match(/Title:\s*([^\n]+)/i);
@@ -532,7 +567,8 @@ Please try again in a few moments, or consider using one of the other AI provide
       
       for (const match of allMatchesAnalysis) {
         const rank = parseInt(match[1]);
-        if (rank > 20) break; // Process up to 20 items for Select Location page
+        if (isSelectLocationPage && rank > 20) break; // Process up to 20 items for Select Location page
+        if (!isSelectLocationPage && rank > 10) break; // Process up to 10 items for Results page
         
         const content = match[2].trim();
         // Handle both "Title:" and "**Title:**" formats
@@ -668,9 +704,9 @@ Please try again in a few moments, or consider using one of the other AI provide
       } else if (rankingAnalysis.length < 20) {
         console.log('🔍 Perplexity - Warning: Only', rankingAnalysis.length, 'results found for Select Location page (expected 20)');
       }
-    } else if (!isSelectLocationPage && rankingAnalysis.length > 5) {
-      console.log('🔍 Perplexity - Limiting ranking analysis to 5 results for Results page');
-      rankingAnalysis = rankingAnalysis.slice(0, 5);
+    } else if (!isSelectLocationPage && rankingAnalysis.length > 10) {
+      console.log('🔍 Perplexity - Limiting ranking analysis to 10 results for Results page');
+      rankingAnalysis = rankingAnalysis.slice(0, 10);
     }
 
     console.log('🔍 Perplexity - Final ranking analysis count:', rankingAnalysis.length);
